@@ -1,0 +1,19 @@
+[package]
+name = "carbon-intensity-api"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "carbon-intensity-api"
+
+[dependencies]
+actix-web = "4.2.1"
+futures-util = "0.3.25"
+serde = { version = "1.0.148", features = ["derive"] }
+tokio = { version = "1.22.0", features = ["full"] }
+rate-limiter-rs = { path = "../rate-limiter-rs"}
+derive_more = "0.99.17"

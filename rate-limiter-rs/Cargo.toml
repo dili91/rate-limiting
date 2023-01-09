@@ -1,0 +1,13 @@
+[package]
+name = "rate-limiter-rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+redis = "0.22.2"
+
+[dev-dependencies]
+rand = "0.8.5"
