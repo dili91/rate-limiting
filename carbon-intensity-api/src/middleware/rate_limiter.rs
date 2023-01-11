@@ -1,10 +1,11 @@
 use std::{
     future::{ready, Ready},
-    net::IpAddr,
+    net::AddrParseError,
     rc::Rc,
     str::FromStr,
-    time::Duration,
 };
+
+use actix_web::http::header::{InvalidHeaderName, InvalidHeaderValue};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
@@ -17,29 +18,30 @@ use actix_web::{
 
 use derive_more::Display;
 use futures_util::{future::LocalBoxFuture, FutureExt};
-use rate_limiter_rs::{builder::{RateLimiterBuilder, RedisSettings}, entities::TokenBucketRateLimiter, RateLimiter};
+use rate_limiter_rs::{
+    entities::{
+        RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled,
+        TokenBucketRateLimiter,
+    },
+    RateLimiter,
+};
 
-pub struct ApiRateLimiterFactory {
+pub const RATE_LIMITER_REMAINING_REQUEST_HTTP_HEADER_NAME: &str = "X-Remaining-Request";
+pub const RATE_LIMITER_RETRY_AFTER_HTTP_HEADER_NAME: &str = "Retry-After";
+
+pub struct RateLimiterMiddlewareFactory {
     rate_limiter: Rc<TokenBucketRateLimiter>,
 }
 
-//TODO: get rid of unwraps on this file
-impl ApiRateLimiterFactory {
-    pub fn new(bucket_size: usize, bucket_validity: Duration) -> ApiRateLimiterFactory {
-        let rate_limiter = RateLimiterBuilder::default()
-            .with_bucket_size(bucket_size)
-            .with_bucket_validity(bucket_validity)
-            .with_redis_settings(RedisSettings{ host: "redis".to_string(), port: 6379 })
-            .build()
-            .unwrap();
-
-        ApiRateLimiterFactory {
+impl RateLimiterMiddlewareFactory {
+    pub fn with_rate_limiter(rate_limiter: TokenBucketRateLimiter) -> RateLimiterMiddlewareFactory {
+        RateLimiterMiddlewareFactory {
             rate_limiter: Rc::new(rate_limiter),
         }
     }
 }
 
-impl<S, B> Transform<S, ServiceRequest> for ApiRateLimiterFactory
+impl<S, B> Transform<S, ServiceRequest> for RateLimiterMiddlewareFactory
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = ActixWebError> + 'static,
 {
@@ -76,57 +78,89 @@ where
         let service = self.service.clone();
         let rate_limiter = self.rate_limiter.clone();
         async move {
-            //TODO: gracefully handle unwraps
-            let ip_address: IpAddr = req
+            let ip_address = req
                 .connection_info()
                 .realip_remote_addr()
-                .unwrap()
+                .ok_or_else(|| ApiError::InvalidRequest("Missing IP address!".to_string()))?
                 .parse()
-                .unwrap();
+                .map_err(|e: AddrParseError| ApiError::Internal(e.to_string()))?;
 
-            let rate_limiter_response = rate_limiter.is_request_allowed(ip_address).unwrap();
+            let request_identifier = RequestIdentifier::Ip(ip_address);
 
-            if !rate_limiter_response.is_request_allowed {
-                eprintln!("Request throttled for ip {}", ip_address);
-                return Err(MyError {
-                    retry_after_seconds: rate_limiter_response.expire_in.as_secs(),
+            let rate_limiter_response = rate_limiter.check_request(request_identifier);
+
+            return match rate_limiter_response {
+                Ok(response) => {
+                    return match response {
+                        RateLimiterResponse::RequestAllowed(RequestAllowed {
+                            remaining_request_counter,
+                        }) => {
+                            let mut inner_service_response = service.call(req).await?;
+
+                            inner_service_response.headers_mut().insert(
+                                HeaderName::from_str(
+                                    RATE_LIMITER_REMAINING_REQUEST_HTTP_HEADER_NAME,
+                                )
+                                .map_err(
+                                    |e: InvalidHeaderName| ApiError::Internal(e.to_string()),
+                                )?,
+                                HeaderValue::from_str(
+                                    remaining_request_counter.to_string().as_str(),
+                                )
+                                .map_err(
+                                    |e: InvalidHeaderValue| ApiError::Internal(e.to_string()),
+                                )?,
+                            );
+
+                            Ok(inner_service_response)
+                        }
+                        RateLimiterResponse::RequestThrottled(RequestThrottled { retry_in }) => {
+                            log::warn!("request throttled for ip={}", ip_address);
+
+                            return Err(ApiError::RequestThrottled {
+                                retry_after_seconds: retry_in.as_secs(),
+                            }
+                            .into());
+                        }
+                    };
                 }
-                .into());
-            }
-
-            let mut res = service.call(req).await?;
-
-            //FIXME
-            res.headers_mut().append(
-                HeaderName::from_str("X-Rate-Limiter-Tokens").unwrap(),
-                HeaderValue::from_str(rate_limiter_response.remaining_request_counter.to_string().as_str())
-                    .unwrap(),
-            );
-
-            Ok(res)
+                Err(_err) => {
+                    log::warn!("unable to check rate limit for request coming from ip={}. Skipping validation", ip_address);
+                    Ok(service.call(req).await?)
+                }
+            };
         }
         .boxed_local()
     }
 }
 
 #[derive(Debug, Display)]
-pub struct MyError {
-    pub retry_after_seconds: u64,
+pub enum ApiError {
+    RequestThrottled { retry_after_seconds: u64 },
+    InvalidRequest(String),
+    Internal(String),
 }
 
-impl actix_web::error::ResponseError for MyError {
+impl actix_web::error::ResponseError for ApiError {
     fn error_response(&self) -> HttpResponse {
-        HttpResponse::build(self.status_code())
-            .insert_header(("X-Rate-Limiter-Retry-After", self.retry_after_seconds))
-            .finish()
+        match self {
+            ApiError::RequestThrottled {
+                retry_after_seconds,
+            } => HttpResponse::build(self.status_code())
+                .insert_header((
+                    RATE_LIMITER_RETRY_AFTER_HTTP_HEADER_NAME,
+                    retry_after_seconds.to_string(),
+                ))
+                .body("You've been throttled!"),
+            _ => HttpResponse::build(self.status_code()).finish(),
+        }
     }
 
     fn status_code(&self) -> StatusCode {
-        // match *self {
-        //     MyError::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
-        //     MyError::BadClientData => StatusCode::BAD_REQUEST,
-        //     MyError::Timeout => StatusCode::GATEWAY_TIMEOUT,
-        // }
-        StatusCode::TOO_MANY_REQUESTS
+        match self {
+            ApiError::RequestThrottled { .. } => StatusCode::TOO_MANY_REQUESTS,
+            ApiError::InvalidRequest(_) => StatusCode::BAD_REQUEST,
+            ApiError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 }

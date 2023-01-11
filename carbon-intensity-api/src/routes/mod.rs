@@ -1,1 +1,2 @@
-pub mod get_intensity;
+pub mod health_check;
+pub mod intensity;

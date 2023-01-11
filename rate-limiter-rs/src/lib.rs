@@ -1,18 +1,32 @@
-use std::{net::IpAddr, time::Duration};
+use std::time::Duration;
 
-use entities::{RateLimiterResponse, TokenBucketRateLimiter};
+use entities::{
+    RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled,
+    TokenBucketRateLimiter,
+};
 use errors::RateLimiterError;
 
-pub mod builder;
+pub mod builders;
 pub mod entities;
 pub mod errors;
+pub mod factory;
 
 /// Trait representing the capabilities offered by the rate limiter
 pub trait RateLimiter {
-    fn is_request_allowed(
+    fn check_request(
         &self,
-        ip_address: IpAddr,
+        request_identifier: RequestIdentifier,
     ) -> Result<RateLimiterResponse, RateLimiterError>;
+}
+
+impl TokenBucketRateLimiter {
+    /// method that builds a request key based on the different input
+    fn build_request_key(&self, request_identifier: RequestIdentifier) -> String {
+        match request_identifier {
+            RequestIdentifier::Ip(ip) => format!("rl:ip_{}", ip),
+            RequestIdentifier::Custom { key, value } => format!("rl:cst_{0}:{1}", key, value),
+        }
+    }
 }
 
 /// Implementation of a revised token bucket rate limiter.
@@ -55,24 +69,24 @@ impl RateLimiter for TokenBucketRateLimiter {
     ///
     /// Below the output of a MONITOR command on a Redis instance when the `is_request_allowed` function is invoked:
     /// ```
-    /// 1673395296.009154 [0 192.168.192.5:35814] "WATCH" "192.168.192.6"
-    /// 1673395296.009712 [0 192.168.192.5:35814] "MULTI"
-    /// 1673395296.012079 [0 192.168.192.5:35814] "SETNX" "192.168.192.6" "5"
-    /// 1673395296.012161 [0 192.168.192.5:35814] "EXPIRE" "192.168.192.6" "60" "NX"
-    /// 1673395296.012200 [0 192.168.192.5:35814] "INCRBY" "192.168.192.6" "-1"
-    /// 1673395296.012673 [0 192.168.192.5:35814] "TTL" "192.168.192.6"
-    /// 1673395296.012724 [0 192.168.192.5:35814] "EXEC"
-    /// 1673395296.013392 [0 192.168.192.5:35814] "UNWATCH"
+    /// 1673481594.796098 [0 192.168.224.4:53504] "WATCH" "rl:ip_192.168.224.6"
+    /// 1673481594.796875 [0 192.168.224.4:53504] "MULTI"
+    /// 1673481594.796902 [0 192.168.224.4:53504] "SETNX" "rl:ip_192.168.224.6" "5"
+    /// 1673481594.796916 [0 192.168.224.4:53504] "EXPIRE" "rl:ip_192.168.224.6" "60" "NX"
+    /// 1673481594.796929 [0 192.168.224.4:53504] "INCRBY" "rl:ip_192.168.224.6" "-1"
+    /// 1673481594.796941 [0 192.168.224.4:53504] "TTL" "rl:ip_192.168.224.6"
+    /// 1673481594.796950 [0 192.168.224.4:53504] "EXEC"
+    /// 1673481594.799002 [0 192.168.224.4:53504] "UNWATCH"
     /// ```
-    fn is_request_allowed(
+    fn check_request(
         &self,
-        ip_address: IpAddr,
+        request_identifier: RequestIdentifier,
     ) -> Result<RateLimiterResponse, RateLimiterError> {
-        let key = &ip_address.to_string();
+        let key = &self.build_request_key(request_identifier);
 
         let mut con = self.redis_client.get_connection()?;
 
-        let (remaining_tokens, expire_in_seconds): (isize, u64) =
+        let (remaining_tokens, expire_in_seconds): (i64, u64) =
             redis::transaction(&mut con, &[key], |con, pipe| {
                 pipe.cmd("SETNX")
                     .arg(key)
@@ -91,43 +105,77 @@ impl RateLimiter for TokenBucketRateLimiter {
                     .query(con)
             })?;
 
-        Ok(RateLimiterResponse {
-            remaining_request_counter: remaining_tokens,
-            is_request_allowed: remaining_tokens >= 0,
-            expire_in: Duration::from_secs(expire_in_seconds),
-        })
+        let response = if remaining_tokens >= 0 {
+            RateLimiterResponse::RequestAllowed(RequestAllowed {
+                remaining_request_counter: remaining_tokens as u64,
+            })
+        } else {
+            RateLimiterResponse::RequestThrottled(RequestThrottled {
+                retry_in: Duration::from_secs(expire_in_seconds),
+            })
+        };
+
+        Ok(response)
     }
 }
 
 #[cfg(test)]
 mod test {
     use std::{
+        cmp,
         net::{IpAddr, Ipv4Addr},
         time::Duration,
     };
 
     use rand::Rng;
+    use rstest::rstest;
+    use uuid::Uuid;
 
     use crate::{
-        builder::{RateLimiterBuilder, RedisSettings},
-        errors::RateLimiterError,
-        RateLimiter,
+        builders::RedisSettings, entities::RequestIdentifier, errors::RateLimiterError,
+        factory::RateLimiterFactory, RateLimiter,
     };
 
-    #[test]
-    fn should_yield_a_connection_error() {
+    #[rstest]
+    #[case::ip(
+        RequestIdentifier::Ip(IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4))),
+        "rl:ip_1.2.3.4"
+    )]
+    #[case::custom_id(
+        RequestIdentifier::Custom { key: "client_id".to_string(), value: "dili91".to_string() },
+        "rl:cst_client_id:dili91"
+    )]
+    fn should_build_request_identifier(
+        #[case] request_identifier: RequestIdentifier,
+        #[case] expected_key: &str,
+    ) {
+        let rate_limiter = RateLimiterFactory::fixed_token_bucket().build().unwrap();
+
+        assert_eq!(
+            rate_limiter.build_request_key(request_identifier),
+            expected_key
+        )
+    }
+
+    // #[test]
+    #[rstest]
+    #[case::ip(RequestIdentifier::Ip(generate_random_ip()))]
+    #[case::custom_id(
+        RequestIdentifier::Custom { key: "a_custom_id".to_string(), value: Uuid::new_v4().to_string()  },
+    )]
+    fn should_yield_a_connection_error(#[case] request_identifier: RequestIdentifier) {
         //arrange
-        let rate_limiter = RateLimiterBuilder::default()
+        let rate_limiter = RateLimiterFactory::fixed_token_bucket()
             .with_redis_settings(RedisSettings {
                 host: "whatever".to_string(),
                 port: 1,
             })
             .build()
             .unwrap();
-        let ip = generate_random_ip();
+        let _ip = generate_random_ip();
 
         //act
-        let res = rate_limiter.is_request_allowed(ip);
+        let res = rate_limiter.check_request(request_identifier);
 
         //assert
         assert!(res.is_err());
@@ -137,26 +185,35 @@ mod test {
         ))
     }
 
-    #[test]
-    fn should_check_request_eligibility() {
+    #[rstest]
+    #[case::ip(RequestIdentifier::Ip(generate_random_ip()))]
+    #[case::custom_id(
+        RequestIdentifier::Custom { key: "a_custom_id".to_string(), value: Uuid::new_v4().to_string() },
+    )]
+    fn should_check_request_eligibility(#[case] request_identifier: RequestIdentifier) {
         //arrange
         let bucket_size = 5;
         let refill_rate = Duration::from_secs(60);
-        let rate_limiter = RateLimiterBuilder::default()
+        let rate_limiter = RateLimiterFactory::fixed_token_bucket()
             .with_bucket_size(bucket_size)
             .with_bucket_validity(refill_rate)
             .build()
             .unwrap();
-        let ip = generate_random_ip();
 
-        for n in 1..=10 {
+        for n in 1..=10 as u64 {
             //act
-            let res = rate_limiter.is_request_allowed(ip).unwrap();
+            let res = rate_limiter
+                .check_request(request_identifier.clone())
+                .unwrap();
 
-            //assert
-            assert!(res.expire_in.as_secs() > 0);
-            assert_eq!(res.remaining_request_counter, bucket_size as isize - n);
-            assert_eq!(res.is_request_allowed, n <= bucket_size as isize);
+            if n <= bucket_size {
+                assert_eq!(
+                    res.as_allowed().remaining_request_counter,
+                    cmp::max(0, bucket_size as i64 - n as i64) as u64
+                )
+            } else {
+                assert!(res.as_throttled().retry_in.as_secs() > 0)
+            }
         }
     }
 

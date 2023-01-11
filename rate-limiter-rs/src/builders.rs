@@ -4,7 +4,7 @@ use redis::Client;
 
 use crate::{errors::RateLimiterError, TokenBucketRateLimiter};
 
-const DEFAULT_BUCKET_SIZE: usize = 5;
+const DEFAULT_BUCKET_SIZE: u64 = 5;
 const DEFAULT_BUCKET_VALIDITY: Duration = Duration::from_secs(60);
 const DEFAULT_REDIS_HOST: &str = "127.0.0.1";
 const DEFAULT_REDIS_PORT: u16 = 6379;
@@ -13,10 +13,10 @@ const DEFAULT_REDIS_PORT: u16 = 6379;
 /// as well as the underlying redis configurations. All values are optional and defaults are
 /// applied if not explicitly specified by the user.
 #[derive(Default)]
-pub struct RateLimiterBuilder {
+pub struct TokenBucketRateLimiterBuilder {
     /// The size of the bucket, that is the maximum number
     /// of requests that the rate limiter will allow for a time equal to the _bucket_validity_
-    bucket_size: Option<usize>,
+    bucket_size: Option<u64>,
 
     /// Represents how long the bucket should be considered valid.
     /// This can be considered as the equivalent of the _refill rate_
@@ -26,6 +26,7 @@ pub struct RateLimiterBuilder {
     redis_settings: Option<RedisSettings>,
 }
 
+#[derive(Clone)]
 /// Represent the Redis configuration object
 pub struct RedisSettings {
     /// The host of the Redis server used.
@@ -43,9 +44,9 @@ impl Default for RedisSettings {
     }
 }
 
-impl RateLimiterBuilder {
+impl TokenBucketRateLimiterBuilder {
     /// Setter for the rate limiter bucket size.
-    pub fn with_bucket_size(mut self, size: usize) -> Self {
+    pub fn with_bucket_size(mut self, size: u64) -> Self {
         self.bucket_size = Some(size);
         self
     }
@@ -87,16 +88,16 @@ impl RateLimiterBuilder {
 mod test {
     use std::time::Duration;
 
-    use crate::builder::{
+    use crate::builders::{
         RedisSettings, DEFAULT_BUCKET_SIZE, DEFAULT_BUCKET_VALIDITY, DEFAULT_REDIS_HOST,
         DEFAULT_REDIS_PORT,
     };
 
-    use super::RateLimiterBuilder;
+    use super::TokenBucketRateLimiterBuilder;
 
     #[test]
     fn should_build_rate_limiter_with_default_options() {
-        let rate_limiter = RateLimiterBuilder::default().build().unwrap();
+        let rate_limiter = TokenBucketRateLimiterBuilder::default().build().unwrap();
 
         assert_eq!(rate_limiter.bucket_size, DEFAULT_BUCKET_SIZE);
         assert_eq!(rate_limiter.bucket_validity, DEFAULT_BUCKET_VALIDITY);
@@ -116,7 +117,7 @@ mod test {
         let bucket_validity = Duration::from_secs(15);
         let redis_host = "redis".to_string();
         let redis_port = 1234;
-        let rate_limiter = RateLimiterBuilder::default()
+        let rate_limiter = TokenBucketRateLimiterBuilder::default()
             .with_bucket_size(bucket_size)
             .with_bucket_validity(bucket_validity)
             .with_redis_settings(RedisSettings {

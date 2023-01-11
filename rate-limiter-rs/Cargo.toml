@@ -11,3 +11,5 @@ redis = "0.22.2"
 
 [dev-dependencies]
 rand = "0.8.5"
+rstest = "0.16.0"
+uuid = { version = "1.2.2", features = [ "v4", "fast-rng", "macro-diagnostics" ]}

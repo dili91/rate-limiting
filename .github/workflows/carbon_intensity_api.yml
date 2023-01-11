@@ -1,0 +1,47 @@
+name: Carbon intensity API CI
+
+defaults:
+  run:
+    working-directory: carbon-intensity-api
+
+on:
+  push:
+    paths:
+      - 'carbon-intensity-api/**'
+
+jobs:
+  build_and_test:
+    services:
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+    runs-on: ubuntu-latest      
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build
+        run: cargo build
+      - name: Format
+        run: cargo fmt
+      - name: Lint
+        run: cargo fmt --check
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - name: Test
+        run: cargo nextest run
+
+  distributed_test:
+    runs-on: ubuntu-latest 
+    steps: 
+      - uses: actions/checkout@v3
+      - name: Boot distributed app setup 
+        run: ./boot.sh  
+      - name: Install k6
+        run: |
+          curl https://github.com/loadimpact/k6/releases/download/v0.26.2/k6-v0.26.2-linux64.tar.gz -L | tar xvz --strip-components 1
+      - name: Run distributed test
+        run: |
+          ./k6 run distributed_test.js

@@ -1,0 +1,18 @@
+name: Docs linting   
+
+on:
+  push:
+    paths:
+      - '**.md'
+
+jobs:
+  docs_linting:
+    name: Docs linting
+    runs-on: ubuntu-latest      
+    steps:
+      - uses: actions/checkout@v3
+      - name: Lint changelog file
+        uses: docker://avtodev/markdown-lint:v1
+        with:
+          args: './README.md ./carbon-intensity-api/README.md ./rate-limiter-rs/README.md'
+          ignore: './rate-limiter-rs/target ./carbon-intensity-api/target' 

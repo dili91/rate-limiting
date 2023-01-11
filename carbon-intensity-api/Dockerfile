@@ -1,5 +1,4 @@
 FROM rust:1.66 as builder
-COPY . .
 WORKDIR /usr/workspace
 COPY . .
 

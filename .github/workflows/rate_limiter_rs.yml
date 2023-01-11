@@ -1,5 +1,9 @@
 name: Rate limiter library CI
 
+defaults:
+  run:
+    working-directory: rate-limiter-rs    
+
 on:
   push:
     paths:
@@ -12,9 +16,6 @@ jobs:
         image: redis:alpine
         ports:
           - 6379:6379
-    defaults:
-      run:
-        working-directory: rate-limiter-rs    
     runs-on: ubuntu-latest      
     steps:
       - uses: actions/checkout@v3

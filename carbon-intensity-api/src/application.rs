@@ -1,56 +1,53 @@
 use std::time::Duration;
 
-use actix_web::{dev::Server, web, App, HttpServer};
-
+use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
+use rate_limiter_rs::{builders::RedisSettings, factory::RateLimiterFactory};
 
 use crate::{
-    middleware::rate_limiter::ApiRateLimiterFactory, routes::get_intensity::get_intensity,
+    middleware::rate_limiter::RateLimiterMiddlewareFactory,
+    routes::{health_check::health_check, intensity::get_intensity::get_intensity},
+    settings::AppSettings,
 };
-
-//TODO: add tracing
 
 pub struct Application {
     http_server: Server,
     port: u16,
-
-    //TODO: redis config
-}
-
-pub struct AppState {
-    //TODO: pub carbon_intensity_client: ,
 }
 
 impl Application {
-    /// Bakes the main HTTP server.
-    pub fn build(host: &str, port: u16) -> Self {
-        let app_state = web::Data::new(AppState {});
+    /// Builds the main app entrypoint
+    pub fn build(settings: AppSettings) -> Self {
+        let rate_limiter = RateLimiterFactory::fixed_token_bucket()
+            .with_bucket_size(settings.rate_limiter.bucket_size)
+            .with_bucket_validity(Duration::from_secs(
+                settings.rate_limiter.bucket_validity_seconds,
+            ))
+            .with_redis_settings(RedisSettings {
+                host: settings.rate_limiter.redis_server.host,
+                port: settings.rate_limiter.redis_server.port,
+            })
+            .build()
+            .expect("unable to setup rate limiter component");
 
         let server = HttpServer::new(move || {
             App::new()
-                // .wrap(
-                //     // create cookie based session middleware
-                //     SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64]))
-                //         .cookie_secure(false)
-                //         .build(),
-                // )
-                .app_data(app_state.clone())
-                // .wrap_fn(|req, srv| {
-                //     println!("Hi from start. You requested: {}", req.path());
-                //     srv.call(req).map(|res| {
-                //         println!("Hi from response");
-                //         res
-                //     })
-                // })
-                .wrap(ApiRateLimiterFactory::new(5, Duration::from_secs(60)))
-                .route("/intensity", web::get().to(get_intensity))
+                .wrap(Logger::default())
+                .route("/health_check", web::get().to(health_check))
+                .service(
+                    web::scope("/carbon/intensity")
+                        .wrap(RateLimiterMiddlewareFactory::with_rate_limiter(
+                            rate_limiter.clone(),
+                        ))
+                        .route("", web::get().to(get_intensity)),
+                )
         });
 
-        //FIXME: improve
-        let actix_server = server.bind((host, port)).expect("unable to build app");
+        let actix_server = server
+            .bind((settings.http_server.host, settings.http_server.port))
+            .expect("unable to build app");
+
         let port = actix_server.addrs()[0].port();
-
         let http_server = actix_server.run();
-
         Application { http_server, port }
     }
 

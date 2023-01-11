@@ -6,17 +6,20 @@ services:
     networks:
       - backend
     deploy:  
-      # TODO: check if we can demo more replicas  
       replicas: 1  
 
   carbon-intensity-api:
-    build: .
+    build: 
+      context: ../.
+      dockerfile: ./carbon-intensity-api/Dockerfile
     networks:
       - backend
     depends_on:
       - redis
     deploy:
       replicas: 3
+    environment:
+      - APP__RATE_LIMITER__REDIS_SERVER__HOST=redis
 
   load_balancer:
     image: nginx:1.23.3-alpine-slim
