@@ -10,7 +10,7 @@ refill the bucket at a fixed interval rate, but it creates a bucket on the
 very first request belonging to the same ip address, and expire the bucket
 after a configured deadline. This approach has the advantage that the same
 origin cannot fire more than the maximum allowed requests in a period which
-is across 2 adjacent windows. 
+is across 2 adjacent windows.
 
 Another advantage compared to a classic token
 bucket rate limiter is the fact that buckets are created only when the first
