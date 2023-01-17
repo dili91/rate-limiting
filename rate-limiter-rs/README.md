@@ -16,9 +16,9 @@ consumption, as we have buckets held in memory just for those IP addresses
 (or origin identifiers) that actually hit our service.
 
 The disadvantage of this solution compared to a canonical token bucket
-rate limiter is that once the request budget is reached, the caller 
-should wait the bucket expiration before firing any new request, as 
-opposed to having the request budget bumped of one (or more) token 
+rate limiter is that once the request budget is reached, the caller
+should wait the bucket expiration before firing any new request, as
+opposed to having the request budget bumped of one (or more) token
 at a regular interval, typically 1 or few seconds.
 
 The algorithm is defined [here](./src/lib.rs#L54).
