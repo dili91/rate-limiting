@@ -33,8 +33,21 @@ impl TokenBucketRateLimiter {
 ///
 /// ## Implementation details
 ///
-/// Unlike traditional token bucket rate limiters, this implementation does not refill the bucket at a fixed interval rate, but it creates a bucket
-/// on the very first request belonging to the same ip address and expire the bucket after a configured deadline.
+/// Unlike traditional token bucket rate limiters, this implementation does not
+/// refill the bucket at a fixed interval rate, but it creates a bucket on the
+/// very first request belonging to the same ip address, or a custom origin
+/// identifier, with a configured expiry time.
+/// 
+/// Compared to a classic token bucket implementation
+/// such approach should be slightly more efficient with regards to memory
+/// consumption, as we have buckets held in memory just for those IP addresses
+/// (or origin identifiers) that actually hit our service.
+/// 
+/// The disadvantage of this solution compared to a canonical token bucket
+/// rate limiter is that once the request budget is reached, the caller 
+/// should wait the bucket expiration before firing any new request, as 
+/// opposed to having the request budget bumped of one (or more) token 
+/// at a regular interval, typically 1 or few seconds.
 ///
 /// ## Example
 /// ```
