@@ -3,7 +3,6 @@ use std::{
     str::FromStr,
 };
 
-
 use carbon_intensity_api::{
     application::Application,
     middleware::rate_limiter::{

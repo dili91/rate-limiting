@@ -3,6 +3,7 @@ use std::{
     net::AddrParseError,
     rc::Rc,
     str::FromStr,
+    sync::Arc,
 };
 
 use actix_web::http::header::{InvalidHeaderName, InvalidHeaderValue};
@@ -19,25 +20,21 @@ use actix_web::{
 use derive_more::Display;
 use futures_util::{future::LocalBoxFuture, FutureExt};
 use rate_limiter_rs::{
-    entities::{
-        RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled,
-    }, rate_limiters::{token_bucket::TokenBucketRateLimiter, sliding_window::SlidingWindowRateLimiter}, RateLimiter,
+    entities::{RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled},
+    RateLimiter,
 };
 
 pub const RATE_LIMITER_REMAINING_REQUEST_HTTP_HEADER_NAME: &str = "X-Remaining-Request";
 pub const RATE_LIMITER_RETRY_AFTER_HTTP_HEADER_NAME: &str = "Retry-After";
 
 pub struct RateLimiterMiddlewareFactory {
-    rate_limiter: Rc<dyn RateLimiter>,
+    rate_limiter: Arc<dyn RateLimiter>,
 }
 
 impl RateLimiterMiddlewareFactory {
-
     //FIXME: use trait possibly
-    pub fn with_rate_limiter(rate_limiter:SlidingWindowRateLimiter ) -> RateLimiterMiddlewareFactory {
-        RateLimiterMiddlewareFactory {
-            rate_limiter: Rc::new(rate_limiter),
-        }
+    pub fn with_rate_limiter(rate_limiter: Arc<dyn RateLimiter>) -> RateLimiterMiddlewareFactory {
+        RateLimiterMiddlewareFactory { rate_limiter }
     }
 }
 
@@ -61,7 +58,7 @@ where
 
 pub struct ApiRateLimiterMiddleware<S> {
     service: Rc<S>,
-    rate_limiter: Rc<dyn RateLimiter>,
+    rate_limiter: Arc<dyn RateLimiter>,
 }
 
 impl<S, B> Service<ServiceRequest> for ApiRateLimiterMiddleware<S>

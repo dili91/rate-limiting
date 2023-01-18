@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
 use rate_limiter_rs::{builders::RedisSettings, factory::RateLimiterFactory};
@@ -29,17 +29,19 @@ impl Application {
         //     .build()
         //     .expect("unable to setup rate limiter component");
 
-            let rate_limiter = RateLimiterFactory::sliding_window()
-            .with_window_size(settings.rate_limiter.bucket_size)
-            .with_window_duration(Duration::from_secs(
-                settings.rate_limiter.bucket_validity_seconds,
-            ))
-            .with_redis_settings(RedisSettings {
-                host: settings.rate_limiter.redis_server.host,
-                port: settings.rate_limiter.redis_server.port,
-            })
-            .build()
-            .expect("unable to setup rate limiter component");    
+        let rate_limiter = Arc::new(
+            RateLimiterFactory::sliding_window()
+                .with_window_size(settings.rate_limiter.bucket_size)
+                .with_window_duration(Duration::from_secs(
+                    settings.rate_limiter.bucket_validity_seconds,
+                ))
+                .with_redis_settings(RedisSettings {
+                    host: settings.rate_limiter.redis_server.host,
+                    port: settings.rate_limiter.redis_server.port,
+                })
+                .build()
+                .expect("unable to setup rate limiter component"),
+        );
 
         let server = HttpServer::new(move || {
             App::new()
