@@ -21,20 +21,20 @@ use futures_util::{future::LocalBoxFuture, FutureExt};
 use rate_limiter_rs::{
     entities::{
         RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled,
-        TokenBucketRateLimiter,
-    },
-    RateLimiter,
+    }, rate_limiters::{token_bucket::TokenBucketRateLimiter, sliding_window::SlidingWindowRateLimiter}, RateLimiter,
 };
 
 pub const RATE_LIMITER_REMAINING_REQUEST_HTTP_HEADER_NAME: &str = "X-Remaining-Request";
 pub const RATE_LIMITER_RETRY_AFTER_HTTP_HEADER_NAME: &str = "Retry-After";
 
 pub struct RateLimiterMiddlewareFactory {
-    rate_limiter: Rc<TokenBucketRateLimiter>,
+    rate_limiter: Rc<dyn RateLimiter>,
 }
 
 impl RateLimiterMiddlewareFactory {
-    pub fn with_rate_limiter(rate_limiter: TokenBucketRateLimiter) -> RateLimiterMiddlewareFactory {
+
+    //FIXME: use trait possibly
+    pub fn with_rate_limiter(rate_limiter:SlidingWindowRateLimiter ) -> RateLimiterMiddlewareFactory {
         RateLimiterMiddlewareFactory {
             rate_limiter: Rc::new(rate_limiter),
         }
@@ -61,7 +61,7 @@ where
 
 pub struct ApiRateLimiterMiddleware<S> {
     service: Rc<S>,
-    rate_limiter: Rc<TokenBucketRateLimiter>,
+    rate_limiter: Rc<dyn RateLimiter>,
 }
 
 impl<S, B> Service<ServiceRequest> for ApiRateLimiterMiddleware<S>

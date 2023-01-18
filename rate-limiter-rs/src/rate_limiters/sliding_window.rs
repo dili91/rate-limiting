@@ -53,6 +53,7 @@ impl RateLimiter for SlidingWindowRateLimiter {
                 pipe.cmd("ZREMRANGEBYSCORE")
                     .arg(key)
                     .arg("-inf")
+                    //TODO: verify this actually removes stuff.
                     .arg(format!("({}", window_start_epoch_time))
                     .ignore()
                     .cmd("ZADD")

@@ -17,9 +17,21 @@ pub struct Application {
 impl Application {
     /// Builds the main app entrypoint
     pub fn build(settings: AppSettings) -> Self {
-        let rate_limiter = RateLimiterFactory::fixed_token_bucket()
-            .with_bucket_size(settings.rate_limiter.bucket_size)
-            .with_bucket_validity(Duration::from_secs(
+        // let rate_limiter = RateLimiterFactory::fixed_token_bucket()
+        //     .with_bucket_size(settings.rate_limiter.bucket_size)
+        //     .with_bucket_validity(Duration::from_secs(
+        //         settings.rate_limiter.bucket_validity_seconds,
+        //     ))
+        //     .with_redis_settings(RedisSettings {
+        //         host: settings.rate_limiter.redis_server.host,
+        //         port: settings.rate_limiter.redis_server.port,
+        //     })
+        //     .build()
+        //     .expect("unable to setup rate limiter component");
+
+            let rate_limiter = RateLimiterFactory::sliding_window()
+            .with_window_size(settings.rate_limiter.bucket_size)
+            .with_window_duration(Duration::from_secs(
                 settings.rate_limiter.bucket_validity_seconds,
             ))
             .with_redis_settings(RedisSettings {
@@ -27,7 +39,7 @@ impl Application {
                 port: settings.rate_limiter.redis_server.port,
             })
             .build()
-            .expect("unable to setup rate limiter component");
+            .expect("unable to setup rate limiter component");    
 
         let server = HttpServer::new(move || {
             App::new()
