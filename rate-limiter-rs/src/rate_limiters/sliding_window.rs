@@ -45,7 +45,6 @@ impl RateLimiter for SlidingWindowRateLimiter {
 
         let window_start_epoch_time = self.as_epoch_time(window_start_ts)?;
 
-        //TODO: add TTL -> save some memory
         let (request_count, oldest_request_in_updated_window_epoch_time): (u64, Vec<String>) =
             redis::transaction(&mut con, &[key], |con, pipe| {
                 pipe.cmd("ZREMRANGEBYSCORE")
