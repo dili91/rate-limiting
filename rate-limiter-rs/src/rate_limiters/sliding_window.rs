@@ -20,8 +20,7 @@ impl SlidingWindowRateLimiter {
             .duration_since(SystemTime::UNIX_EPOCH)
             .map_err(|_e| RateLimiterError::ComputeError)?
             .as_nanos();
-        //TODO:review
-        Ok(u64::try_from(epoch_time_nanos).map_err(|_e| RateLimiterError::ComputeError)?)
+        u64::try_from(epoch_time_nanos).map_err(|_e| RateLimiterError::ComputeError)
     }
 }
 
