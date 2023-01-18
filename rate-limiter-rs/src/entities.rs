@@ -1,22 +1,6 @@
 use std::{net::IpAddr, time::Duration};
 
-use redis::Client as RedisClient;
-
-/// Represents a distributed token bucket rate limiter
-/// based on [Redis](https://redis.io/)
-#[derive(Clone)]
-pub struct TokenBucketRateLimiter {
-    /// The size of the bucket, that is the maximum number
-    /// of requests that the rate limiter will allow for a time equal to the _bucket_validity_
-    pub bucket_size: u64,
-
-    /// Represents how long the bucket should be considered valid.
-    /// This can be considered as the equivalent of the _refill rate_
-    pub bucket_validity: Duration,
-
-    /// The internal client that will be used to fire requests against Redis
-    pub redis_client: RedisClient,
-}
+//TODO: merge into lib.rs ?
 
 /// Struct for requests that are allowed by the rate limiter
 #[derive(Debug)]

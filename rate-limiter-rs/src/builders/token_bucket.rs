@@ -1,13 +1,13 @@
 use std::time::Duration;
 
-use redis::Client;
+use redis::Client as RedisClient;
 
-use crate::{errors::RateLimiterError, TokenBucketRateLimiter};
+use crate::{errors::RateLimiterError, rate_limiters::token_bucket::TokenBucketRateLimiter};
+
+use super::{RedisSettings, DEFAULT_REDIS_HOST, DEFAULT_REDIS_PORT};
 
 const DEFAULT_BUCKET_SIZE: u64 = 5;
 const DEFAULT_BUCKET_VALIDITY: Duration = Duration::from_secs(60);
-const DEFAULT_REDIS_HOST: &str = "127.0.0.1";
-const DEFAULT_REDIS_PORT: u16 = 6379;
 
 /// Builder component for a rate limiter instance. It accepts the bucket size and validity,
 /// as well as the underlying redis configurations. All values are optional and defaults are
@@ -26,24 +26,6 @@ pub struct TokenBucketRateLimiterBuilder {
     redis_settings: Option<RedisSettings>,
 }
 
-#[derive(Clone)]
-/// Represent the Redis configuration object
-pub struct RedisSettings {
-    /// The host of the Redis server used.
-    pub host: String,
-    /// The port of the Redis server used.
-    pub port: u16,
-}
-
-impl Default for RedisSettings {
-    fn default() -> Self {
-        Self {
-            host: DEFAULT_REDIS_HOST.to_string(),
-            port: DEFAULT_REDIS_PORT,
-        }
-    }
-}
-
 impl TokenBucketRateLimiterBuilder {
     /// Setter for the rate limiter bucket size.
     pub fn with_bucket_size(mut self, size: u64) -> Self {
@@ -52,8 +34,8 @@ impl TokenBucketRateLimiterBuilder {
     }
 
     /// Setter for the rate limiter bucket validity.
-    pub fn with_bucket_validity(mut self, refill_rate: Duration) -> Self {
-        self.bucket_validity = Some(refill_rate);
+    pub fn with_bucket_validity(mut self, bucket_validity: Duration) -> Self {
+        self.bucket_validity = Some(bucket_validity);
         self
     }
 
@@ -68,9 +50,9 @@ impl TokenBucketRateLimiterBuilder {
         let redis_client = self
             .redis_settings
             .as_ref()
-            .map(|rs| Client::open(format!("redis://{0}:{1}", rs.host, rs.port)))
+            .map(|rs| RedisClient::open(format!("redis://{0}:{1}", rs.host, rs.port)))
             .unwrap_or_else(|| {
-                Client::open(format!(
+                RedisClient::open(format!(
                     "redis://{0}:{1}",
                     DEFAULT_REDIS_HOST, DEFAULT_REDIS_PORT
                 ))
@@ -88,7 +70,7 @@ impl TokenBucketRateLimiterBuilder {
 mod test {
     use std::time::Duration;
 
-    use crate::builders::{
+    use crate::builders::token_bucket::{
         RedisSettings, DEFAULT_BUCKET_SIZE, DEFAULT_BUCKET_VALIDITY, DEFAULT_REDIS_HOST,
         DEFAULT_REDIS_PORT,
     };
