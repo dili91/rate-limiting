@@ -163,7 +163,7 @@ mod test {
 
         //assert
         assert!(res.is_err());
-        assert!(matches!(res.unwrap_err(), RateLimiterError::ConnectError))
+        assert!(matches!(res.unwrap_err(), RateLimiterError::IoError(_))) //TODO: improve assertion
     }
 
     #[rstest]

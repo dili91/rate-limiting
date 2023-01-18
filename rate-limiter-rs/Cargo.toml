@@ -8,6 +8,7 @@ path = "src/lib.rs"
 
 [dependencies]
 redis = "0.22.2"
+thiserror = "1.0.38"
 
 [dev-dependencies]
 rand = "0.8.5"

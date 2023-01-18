@@ -1,22 +1,22 @@
 use redis::RedisError;
 
 /// Enum that represent the error potentially returned by the rate limiter component
-#[derive(Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum RateLimiterError {
-    InitError,
+    #[error("Init error")]
+    InitError(#[source] RedisError),
+    #[error("Compute error")]
     ComputeError,
-    ConnectError,
+    #[error("Connect error: {0}")]
+    IoError(#[source] RedisError),
 }
 
 // Converts from RedisError to our custom errors
 impl From<RedisError> for RateLimiterError {
     fn from(redis_error: RedisError) -> Self {
-        //TODO: include stack trace in error.
-        //TODO: differentiate redis query vs connection error
-        eprintln!("redis error: {:?}", redis_error);
         match redis_error.kind() {
-            redis::ErrorKind::InvalidClientConfig => RateLimiterError::InitError,
-            _ => RateLimiterError::ConnectError,
+            redis::ErrorKind::InvalidClientConfig => RateLimiterError::InitError(redis_error),
+            _ => RateLimiterError::IoError(redis_error),
         }
     }
 }

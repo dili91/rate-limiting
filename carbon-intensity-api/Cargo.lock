@@ -1191,6 +1191,7 @@ name = "rate-limiter-rs"
 version = "0.1.0"
 dependencies = [
  "redis",
+ "thiserror",
 ]
 
 [[package]]
