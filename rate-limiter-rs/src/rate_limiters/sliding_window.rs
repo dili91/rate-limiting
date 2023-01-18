@@ -34,17 +34,15 @@ impl RateLimiter for SlidingWindowRateLimiter {
 
         let mut con = self.redis_client.get_connection()?;
 
-        // TODO: get current ts in unix ts
+        // TODO: document this is not monotonic
         let current_ts = SystemTime::now();
 
         let current_ts_epoch_time = self.as_epoch_time(current_ts)?;
 
-        // TODO: get to the above - duration, and remove whatever is before that date
         let window_start_ts = current_ts
             .checked_sub(self.window_duration)
             .ok_or(RateLimiterError::ComputeError)?;
 
-        // TODO: compute _retry in_ info
         let window_start_epoch_time = self.as_epoch_time(window_start_ts)?;
 
         //TODO: add TTL -> save some memory
@@ -53,7 +51,6 @@ impl RateLimiter for SlidingWindowRateLimiter {
                 pipe.cmd("ZREMRANGEBYSCORE")
                     .arg(key)
                     .arg("-inf")
-                    //TODO: verify this actually removes stuff.
                     .arg(format!("({}", window_start_epoch_time))
                     .ignore()
                     .cmd("ZADD")
@@ -66,20 +63,28 @@ impl RateLimiter for SlidingWindowRateLimiter {
                     .cmd("ZREVRANGEBYSCORE")
                     .arg(key)
                     .arg("+inf")
-                    .arg("--inf")
+                    .arg("-inf")
                     .arg("LIMIT")
                     .arg("0")
                     .arg("5")
+                    .cmd("EXPIRE")
+                    .arg(key)
+                    .arg(self.window_duration.as_secs())
+                    .ignore()
                     .query(con)
             })?;
-        
-        println!("request_count={} most_recent={:?}", request_count, oldest_request_in_updated_window_epoch_time);
 
-        //TODO: if let / else ? 
-        let oldest_request_in_updated_window_epoch_time:u64 = match oldest_request_in_updated_window_epoch_time.last() {
-            Some(l) => l.parse().map_err(|_e| RateLimiterError::ComputeError)?,
-            None => 0,
-        };
+        println!(
+            "request_count={} most_recent={:?}",
+            request_count, oldest_request_in_updated_window_epoch_time
+        );
+
+        //TODO: if let / else ?
+        let oldest_request_in_updated_window_epoch_time: u64 =
+            match oldest_request_in_updated_window_epoch_time.last() {
+                Some(l) => l.parse().map_err(|_e| RateLimiterError::ComputeError)?,
+                None => 0,
+            };
 
         let response = if request_count <= self.window_size {
             RateLimiterResponse::RequestAllowed(RequestAllowed {
@@ -87,12 +92,14 @@ impl RateLimiter for SlidingWindowRateLimiter {
             })
         } else {
             //let retry_in = current_ts_epoch_time - mos    t_recent_entry_epoch_time;
-            let time_passed_from_first_req = Duration::from_nanos(current_ts_epoch_time - oldest_request_in_updated_window_epoch_time);
-            let retry_in = self.window_duration.saturating_sub(time_passed_from_first_req);
+            let time_passed_from_first_req = Duration::from_nanos(
+                current_ts_epoch_time - oldest_request_in_updated_window_epoch_time,
+            );
+            let retry_in = self
+                .window_duration
+                .saturating_sub(time_passed_from_first_req);
 
-            RateLimiterResponse::RequestThrottled(RequestThrottled {
-                retry_in
-            })
+            RateLimiterResponse::RequestThrottled(RequestThrottled { retry_in })
         };
 
         Ok(response)
@@ -104,7 +111,7 @@ mod test {
     use std::{
         cmp,
         net::{IpAddr, Ipv4Addr},
-        time::Duration, thread::sleep,
+        time::Duration,
     };
 
     use rand::Rng;
@@ -142,9 +149,9 @@ mod test {
 
     #[rstest]
     #[case::ip(RequestIdentifier::Ip(generate_random_ip()))]
-    // #[case::custom_id(
-    //     RequestIdentifier::Custom { key: "a_custom_id".to_string(), value: Uuid::new_v4().to_string() },
-    // )]
+    #[case::custom_id(
+        RequestIdentifier::Custom { key: "a_custom_id".to_string(), value: Uuid::new_v4().to_string() },
+    )]
     fn should_check_request_eligibility(#[case] request_identifier: RequestIdentifier) {
         //arrange
         let window_size = 5;
@@ -156,7 +163,6 @@ mod test {
             .unwrap();
 
         for n in 1..=2 * window_size {
-            sleep(Duration::from_millis(300));
             //act
             let res = rate_limiter
                 .check_request(request_identifier.clone())
