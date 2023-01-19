@@ -44,7 +44,7 @@ impl RateLimiter for SlidingWindowRateLimiter {
 
         let window_start_epoch_time = self.as_epoch_time(window_start_ts)?;
 
-        let (request_count, oldest_request_in_updated_window_epoch_time): (u64, Vec<String>) =
+        let (request_count, oldest_requests_in_current_window): (u64, Vec<String>) =
             redis::transaction(&mut con, &[key], |con, pipe| {
                 pipe.cmd("ZREMRANGEBYSCORE")
                     .arg(key)
@@ -72,27 +72,18 @@ impl RateLimiter for SlidingWindowRateLimiter {
                     .query(con)
             })?;
 
-        println!(
-            "request_count={} most_recent={:?}",
-            request_count, oldest_request_in_updated_window_epoch_time
-        );
-
-        //TODO: if let / else ?
-        let oldest_request_in_updated_window_epoch_time: u64 =
-            match oldest_request_in_updated_window_epoch_time.last() {
-                Some(l) => l.parse().map_err(|_e| RateLimiterError::ComputeError)?,
-                None => 0,
-            };
+        let oldest_request_epoch_time: u64 = match oldest_requests_in_current_window.last() {
+            Some(l) => l.parse().map_err(|_e| RateLimiterError::ComputeError)?,
+            None => 0,
+        };
 
         let response = if request_count <= self.window_size {
             RateLimiterResponse::RequestAllowed(RequestAllowed {
                 remaining_request_counter: self.window_size - request_count,
             })
         } else {
-            //let retry_in = current_ts_epoch_time - mos    t_recent_entry_epoch_time;
-            let time_passed_from_first_req = Duration::from_nanos(
-                current_ts_epoch_time - oldest_request_in_updated_window_epoch_time,
-            );
+            let time_passed_from_first_req =
+                Duration::from_nanos(current_ts_epoch_time - oldest_request_epoch_time);
             let retry_in = self
                 .window_duration
                 .saturating_sub(time_passed_from_first_req);

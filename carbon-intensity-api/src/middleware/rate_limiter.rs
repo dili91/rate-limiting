@@ -28,12 +28,11 @@ pub const RATE_LIMITER_REMAINING_REQUEST_HTTP_HEADER_NAME: &str = "X-Remaining-R
 pub const RATE_LIMITER_RETRY_AFTER_HTTP_HEADER_NAME: &str = "Retry-After";
 
 pub struct RateLimiterMiddlewareFactory {
-    rate_limiter: Arc<dyn RateLimiter>,
+    rate_limiter: Rc<dyn RateLimiter>,
 }
 
 impl RateLimiterMiddlewareFactory {
-    //FIXME: use trait possibly
-    pub fn with_rate_limiter(rate_limiter: Arc<dyn RateLimiter>) -> RateLimiterMiddlewareFactory {
+    pub fn with_rate_limiter(rate_limiter: Rc<dyn RateLimiter>) -> RateLimiterMiddlewareFactory {
         RateLimiterMiddlewareFactory { rate_limiter }
     }
 }
@@ -58,7 +57,7 @@ where
 
 pub struct ApiRateLimiterMiddleware<S> {
     service: Rc<S>,
-    rate_limiter: Arc<dyn RateLimiter>,
+    rate_limiter: Rc<dyn RateLimiter>,
 }
 
 impl<S, B> Service<ServiceRequest> for ApiRateLimiterMiddleware<S>
