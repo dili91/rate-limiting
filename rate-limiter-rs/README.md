@@ -45,9 +45,8 @@ can spy on the [CI workflow](../.github/workflows/rate_limiter_rs.yml).
 
 ## Areas of improvements
 
-- [ ] More flexibility, right now the implementation is coupled to Redis
 - [ ] Leverage the use of feature flags to selectively include specific
-rate limiter implementations
+rate limiter implementations ?
 - [ ] Redis: Add support for async
 - [ ] Redis: Add support for TLS
 - [ ] Improved local testing: Ideally it should be possible to mock redis,
