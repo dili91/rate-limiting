@@ -7,6 +7,8 @@ use crate::{
     RateLimiter,
 };
 
+//TODO: Docs
+
 #[derive(Clone)]
 pub struct SlidingWindowRateLimiter {
     pub window_size: u64,
@@ -163,9 +165,7 @@ mod test {
                     cmp::max(0, window_size as i64 - n as i64) as u64
                 )
             } else {
-                let retry = res.as_throttled().retry_in.as_secs();
-                println!("Retry in seconds: {}", retry);
-                assert!(retry > 0)
+                assert!(res.as_throttled().retry_in.as_secs() > 0)
             }
         }
     }

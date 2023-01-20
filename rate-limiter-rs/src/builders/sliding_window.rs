@@ -57,4 +57,53 @@ impl SlidingWindowRateLimiterBuilder {
     }
 }
 
-//TODO: tests
+#[cfg(test)]
+mod test {
+    use std::time::Duration;
+
+    use crate::builders::{sliding_window::{SlidingWindowRateLimiterBuilder, DEFAULT_WINDOW_DURATION, DEFAULT_WINDOW_SIZE}, DEFAULT_REDIS_HOST, DEFAULT_REDIS_PORT, RedisSettings};
+
+    #[test]
+    fn should_build_rate_limiter_with_default_options() {
+        let rate_limiter = SlidingWindowRateLimiterBuilder::default().build().unwrap();
+
+        assert_eq!(rate_limiter.window_size, DEFAULT_WINDOW_SIZE);
+        assert_eq!(rate_limiter.window_duration, DEFAULT_WINDOW_DURATION);
+        assert_eq!(
+            rate_limiter
+                .redis_client
+                .get_connection_info()
+                .addr
+                .to_string(),
+            format!("{0}:{1}", DEFAULT_REDIS_HOST, DEFAULT_REDIS_PORT)
+        )
+    }
+
+    #[test]
+    fn should_build_rate_limiter_with_custom_options() {
+        let window_size = 3;
+        let window_duration = Duration::from_secs(15);
+        let redis_host = "redis".to_string();
+        let redis_port = 1234;
+        let rate_limiter = SlidingWindowRateLimiterBuilder::default()
+            .with_window_size(window_size)
+            .with_window_duration(window_duration)
+            .with_redis_settings(RedisSettings {
+                host: redis_host.clone(),
+                port: redis_port,
+            })
+            .build()
+            .unwrap();
+
+        assert_eq!(rate_limiter.window_size, window_size);
+        assert_eq!(rate_limiter.window_duration, window_duration);
+        assert_eq!(
+            rate_limiter
+                .redis_client
+                .get_connection_info()
+                .addr
+                .to_string(),
+            format!("{0}:{1}", redis_host, redis_port)
+        )
+    }
+}
