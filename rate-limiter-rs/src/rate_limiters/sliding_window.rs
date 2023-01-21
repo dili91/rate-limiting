@@ -66,7 +66,6 @@ impl SlidingWindowRateLimiter {
 ///     },
 /// }
 /// ```
-///
 impl RateLimiter for SlidingWindowRateLimiter {
     fn check_request(
         &self,
