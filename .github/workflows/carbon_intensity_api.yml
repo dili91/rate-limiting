@@ -32,6 +32,8 @@ jobs:
         uses: taiki-e/install-action@nextest
       - name: Test
         run: cargo nextest run
+      - name: Doc test
+        run: cargo test --doc
 
   distributed_test:
     runs-on: ubuntu-latest 

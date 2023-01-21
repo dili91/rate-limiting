@@ -67,6 +67,47 @@ impl SlidingWindowRateLimiter {
 /// }
 /// ```
 impl RateLimiter for SlidingWindowRateLimiter {
+    /// Function that returns the result of the rate limiter checks. Yields an error in case of troubles
+    /// connecting to the underlying redis instance.
+    ///
+    /// ## Implementation details
+    /// The implementation of this method heavily relies on Redis commands and [Sorted sets](https://redis.io/docs/data-types/sorted-sets/).
+    /// It atomically runs a set commands to:
+    ///
+    /// 1. Compute the current timestamp, and the start of the current _window_;
+    /// 2. Remove all the items (if any) matching the given request identifier and received before the computed window start date;
+    /// 3. If not present already, create a sorted set with the given request identifier. 
+    /// 4. Add the current request to the sorted set as new item having key and value equal to the current timestamp, computed at step one;
+    /// 5. Count the number of items in the sorted set, later used to indicate the outstanding request budget, in case the request is allowed;
+    /// 6. Retrieve the last request in the updated, valid window and use that to indicate the value of the retry_in information in case the request is throttled.
+    /// 7. Set the sorted set to expire in _window_duration_ in seconds.
+    ///
+    /// The above four commands are wrapped into a Redis [transaction](https://redis.io/docs/manual/transactions/) with the helper provided by the underlying redis crate used.
+    /// The combination of `WATCH`, `MULTI` and `EXEC` commands here protect this piece of code from race conditions when multiple
+    /// clients are modifying the same key simultaneously.
+    ///
+    /// Below the output of a MONITOR command on a Redis instance when the `is_request_allowed` function is invoked:
+    ///
+    /// ```ignore
+    /// 1674324083.383248 [0 172.17.0.1:59248] "WATCH" "rl:ip_115.249.235.84"
+    /// 1674324083.386649 [0 172.17.0.1:59248] "ZREMRANGEBYSCORE" "rl:ip_115.249.235.84" "-inf" "(1674324023380245000"
+    /// 1674324083.386600 [0 172.17.0.1:59248] "MULTI"
+    /// 1674324083.386670 [0 172.17.0.1:59248] "ZADD" "rl:ip_115.249.235.84" "NX" "1674324083380245000" "1674324083380245000"
+    /// 1674324083.386684 [0 172.17.0.1:59248] "ZCOUNT" "rl:ip_115.249.235.84" "-inf" "+inf"
+    /// 1674324083.386698 [0 172.17.0.1:59248] "ZREVRANGEBYSCORE" "rl:ip_115.249.235.84" "+inf" "-inf" "LIMIT" "0" "5"
+    /// 1674324083.386712 [0 172.17.0.1:59248] "EXPIRE" "rl:ip_115.249.235.84" "60"
+    /// 1674324083.386719 [0 172.17.0.1:59248] "EXEC"
+    /// 1674324083.391000 [0 172.17.0.1:59248] "UNWATCH"
+    /// 1674324083.395845 [0 172.17.0.1:59250] "WATCH" "rl:ip_115.249.235.84"
+    /// 1674324083.398000 [0 172.17.0.1:59250] "MULTI"
+    /// 1674324083.398027 [0 172.17.0.1:59250] "ZREMRANGEBYSCORE" "rl:ip_115.249.235.84" "-inf" "(1674324023392739000"
+    /// 1674324083.398042 [0 172.17.0.1:59250] "ZADD" "rl:ip_115.249.235.84" "NX" "1674324083392739000" "1674324083392739000"
+    /// 1674324083.398054 [0 172.17.0.1:59250] "ZCOUNT" "rl:ip_115.249.235.84" "-inf" "+inf"
+    /// 1674324083.398065 [0 172.17.0.1:59250] "ZREVRANGEBYSCORE" "rl:ip_115.249.235.84" "+inf" "-inf" "LIMIT" "0" "5"
+    /// 1674324083.398078 [0 172.17.0.1:59250] "EXPIRE" "rl:ip_115.249.235.84" "60"
+    /// 1674324083.398084 [0 172.17.0.1:59250] "EXEC"
+    /// 1674324083.400599 [0 172.17.0.1:59250] "UNWATCH"
+    /// ```
     fn check_request(
         &self,
         request_identifier: crate::entities::RequestIdentifier,
