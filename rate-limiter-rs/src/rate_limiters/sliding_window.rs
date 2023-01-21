@@ -76,7 +76,7 @@ impl RateLimiter for SlidingWindowRateLimiter {
     ///
     /// 1. Compute the current timestamp, and the start of the current _window_;
     /// 2. Remove all the items (if any) matching the given request identifier and received before the computed window start date;
-    /// 3. If not present already, create a sorted set with the given request identifier. 
+    /// 3. If not present already, create a sorted set with the given request identifier.
     /// 4. Add the current request to the sorted set as new item having key and value equal to the current timestamp, computed at step one;
     /// 5. Count the number of items in the sorted set, later used to indicate the outstanding request budget, in case the request is allowed;
     /// 6. Retrieve the last request in the updated, valid window and use that to indicate the value of the retry_in information in case the request is throttled.
