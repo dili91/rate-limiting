@@ -46,7 +46,7 @@ mod test {
         #[case] request_identifier: RequestIdentifier,
         #[case] expected_key: &str,
     ) {
-        let rate_limiter = RateLimiterFactory::fixed_token_bucket().build().unwrap();
+        let rate_limiter = RateLimiterFactory::token_bucket().build().unwrap();
 
         assert_eq!(
             rate_limiter.build_request_key(request_identifier),

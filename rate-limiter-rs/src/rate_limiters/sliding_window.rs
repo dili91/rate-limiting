@@ -7,15 +7,23 @@ use crate::{
     RateLimiter,
 };
 
-//TODO: Docs
-
+/// Represents a distributed token bucket rate limiter
+/// based on [Redis](https://redis.io/)
 #[derive(Clone)]
 pub struct SlidingWindowRateLimiter {
+    /// The size of the sliding window, that is the maximum number of
+    /// requests allowed in a single window
     pub window_size: u64,
+
+    /// The duration of the sliding window that the rate limiter takes
+    /// into account when deciding whether to allow or throttle a request
     pub window_duration: Duration,
+
+    /// The internal client that will be used to fire requests against Redis
     pub redis_client: RedisClient,
 }
 
+//TODO: move into a sep function
 impl SlidingWindowRateLimiter {
     fn as_epoch_time(&self, ts: SystemTime) -> Result<u64, crate::RateLimiterError> {
         let epoch_time_nanos = ts
@@ -26,6 +34,39 @@ impl SlidingWindowRateLimiter {
     }
 }
 
+/// Implementation of a sliding window rate limiter.
+///
+/// ## Implementation details
+///
+/// Implements the sliding window rate liming algorithm, allowing a maximum of `window_size` request
+/// in the configured duration defined by the `window_duration` parameter.
+///
+/// ## Example
+///
+/// ```
+/// use std::net::{IpAddr, Ipv4Addr};
+/// use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
+///     entities::{RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled}
+/// };
+///
+/// let rate_limiter = RateLimiterFactory::sliding_window()
+///     .build()
+///     .unwrap();
+/// let ip_address = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+/// let request_id = RequestIdentifier::Ip(ip_address);
+///
+/// let rate_limiter_response = rate_limiter.check_request(request_id).unwrap();
+///
+/// match rate_limiter_response {
+///     RateLimiterResponse::RequestAllowed(RequestAllowed {remaining_request_counter}) => {
+///         println!("Request allowed! Remaining request counter is {0}.", remaining_request_counter);
+///     },
+///     RateLimiterResponse::RequestThrottled(RequestThrottled {retry_in}) => {
+///         println!("Request throttled! Retry in {0} seconds.", retry_in.as_secs());
+///     },
+/// }
+/// ```
+///
 impl RateLimiter for SlidingWindowRateLimiter {
     fn check_request(
         &self,
@@ -122,7 +163,7 @@ mod test {
     )]
     fn should_yield_a_connection_error(#[case] request_identifier: RequestIdentifier) {
         //arrange
-        let rate_limiter = RateLimiterFactory::fixed_token_bucket()
+        let rate_limiter = RateLimiterFactory::token_bucket()
             .with_redis_settings(RedisSettings {
                 host: "whatever".to_string(),
                 port: 1,

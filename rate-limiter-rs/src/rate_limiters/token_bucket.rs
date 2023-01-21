@@ -44,19 +44,34 @@ pub struct TokenBucketRateLimiter {
 /// opposed to having the request budget bumped of one (or more) token
 /// at a regular interval, typically 1 or few seconds.
 ///
+/// Just like any other Token Bucket implementation it does not prevent bursts of requests
+/// happening in adjacent windows.
+///
 /// ## Example
+///
 /// ```
 /// use std::net::{IpAddr, Ipv4Addr};
-/// use crate::rate_limiter_rs::RateLimiter;
-/// use crate::rate_limiter_rs::builder::RateLimiterBuilder;
+/// use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
+///     entities::{RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled}
+/// };
 ///
-/// let rate_limiter = RateLimiterBuilder::default().build().unwrap();
-/// let ip_address = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+/// let rate_limiter = RateLimiterFactory::token_bucket()
+///     .build()
+///     .unwrap();
+/// let ip_address = IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4));
+/// let request_id = RequestIdentifier::Ip(ip_address);
 ///
-/// let rate_limiter_response = rate_limiter.is_request_allowed(ip_address).unwrap();
+/// let rate_limiter_response = rate_limiter.check_request(request_id).unwrap();
 ///
-/// assert!(rate_limiter_response.is_request_allowed);
-/// ```    
+/// match rate_limiter_response {
+///     RateLimiterResponse::RequestAllowed(RequestAllowed {remaining_request_counter}) => {
+///         println!("Request allowed! Remaining request counter is {0}.", remaining_request_counter);
+///     },
+///     RateLimiterResponse::RequestThrottled(RequestThrottled {retry_in}) => {
+///         println!("Request throttled! Retry in {0} seconds.", retry_in.as_secs());
+///     },
+/// }
+/// ```
 impl RateLimiter for TokenBucketRateLimiter {
     /// Function that returns the result of the rate limiter checks. Yields an error in case of troubles
     /// connecting to the underlying redis instance.
@@ -74,7 +89,8 @@ impl RateLimiter for TokenBucketRateLimiter {
     /// clients are modifying the same key simultaneously.
     ///
     /// Below the output of a MONITOR command on a Redis instance when the `is_request_allowed` function is invoked:
-    /// ```
+    ///
+    /// ```ignore
     /// 1673481594.796098 [0 192.168.224.4:53504] "WATCH" "rl:ip_192.168.224.6"
     /// 1673481594.796875 [0 192.168.224.4:53504] "MULTI"
     /// 1673481594.796902 [0 192.168.224.4:53504] "SETNX" "rl:ip_192.168.224.6" "5"
@@ -149,7 +165,7 @@ mod test {
     )]
     fn should_yield_a_connection_error(#[case] request_identifier: RequestIdentifier) {
         //arrange
-        let rate_limiter = RateLimiterFactory::fixed_token_bucket()
+        let rate_limiter = RateLimiterFactory::token_bucket()
             .with_redis_settings(RedisSettings {
                 host: "whatever".to_string(),
                 port: 1,
@@ -175,7 +191,7 @@ mod test {
         //arrange
         let bucket_size = 5;
         let bucket_validity = Duration::from_secs(60);
-        let rate_limiter = RateLimiterFactory::fixed_token_bucket()
+        let rate_limiter = RateLimiterFactory::token_bucket()
             .with_bucket_size(bucket_size)
             .with_bucket_validity(bucket_validity)
             .build()

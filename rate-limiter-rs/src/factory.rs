@@ -9,7 +9,7 @@ pub struct RateLimiterFactory;
 
 impl RateLimiterFactory {
     /// Provides a builder for a token bucket rate limiter.
-    pub fn fixed_token_bucket() -> TokenBucketRateLimiterBuilder {
+    pub fn token_bucket() -> TokenBucketRateLimiterBuilder {
         TokenBucketRateLimiterBuilder::default()
     }
 
