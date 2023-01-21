@@ -106,6 +106,7 @@ mod test {
     };
 
     use rand::Rng;
+    use redis::RedisError;
     use rstest::rstest;
     use uuid::Uuid;
 
@@ -135,7 +136,10 @@ mod test {
 
         //assert
         assert!(res.is_err());
-        assert!(matches!(res.unwrap_err(), RateLimiterError::IoError(_))) //TODO: improve assertion
+        assert!(matches!(
+            res.unwrap_err(),
+            RateLimiterError::IoError(RedisError { .. })
+        ))
     }
 
     #[rstest]
@@ -160,12 +164,24 @@ mod test {
                 .unwrap();
 
             if n <= window_size {
+                let allowed_res = res.as_allowed();
                 assert_eq!(
-                    res.as_allowed().remaining_request_counter,
+                    allowed_res.remaining_request_counter,
                     cmp::max(0, window_size as i64 - n as i64) as u64
                 )
             } else {
-                assert!(res.as_throttled().retry_in.as_secs() > 0)
+                let tolerance_secs = window_duration.as_secs() * 5 / 100;
+                let throttled_res = res.as_throttled();
+                let retry_in_secs = throttled_res.retry_in.as_secs();
+                assert!(
+                    retry_in_secs > 0 && retry_in_secs <= window_duration.as_secs(),
+                    "retry in is not in valid range"
+                );
+                assert!(
+                    window_duration.as_secs() - throttled_res.retry_in.as_secs() <= tolerance_secs,
+                    "retry_in suggestion is greater than tolerance of {0}s",
+                    tolerance_secs
+                )
             }
         }
     }

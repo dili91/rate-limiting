@@ -181,19 +181,31 @@ mod test {
             .build()
             .unwrap();
 
-        for n in 1..=10 as u64 {
+        for n in 1..=2 * bucket_size {
             //act
             let res = rate_limiter
                 .check_request(request_identifier.clone())
                 .unwrap();
 
             if n <= bucket_size {
+                let allowed_res = res.as_allowed();
                 assert_eq!(
-                    res.as_allowed().remaining_request_counter,
+                    allowed_res.remaining_request_counter,
                     cmp::max(0, bucket_size as i64 - n as i64) as u64
                 )
             } else {
-                assert!(res.as_throttled().retry_in.as_secs() > 0)
+                let tolerance_secs = bucket_validity.as_secs() * 5 / 100;
+                let throttled_res = res.as_throttled();
+                let retry_in_secs = throttled_res.retry_in.as_secs();
+                assert!(
+                    retry_in_secs > 0 && retry_in_secs <= bucket_validity.as_secs(),
+                    "retry in is not in valid range"
+                );
+                assert!(
+                    bucket_validity.as_secs() - throttled_res.retry_in.as_secs() <= tolerance_secs,
+                    "retry_in suggestion is greater than tolerance of {0}s",
+                    tolerance_secs
+                )
             }
         }
     }

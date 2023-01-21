@@ -61,7 +61,12 @@ impl SlidingWindowRateLimiterBuilder {
 mod test {
     use std::time::Duration;
 
-    use crate::builders::{sliding_window::{SlidingWindowRateLimiterBuilder, DEFAULT_WINDOW_DURATION, DEFAULT_WINDOW_SIZE}, DEFAULT_REDIS_HOST, DEFAULT_REDIS_PORT, RedisSettings};
+    use crate::builders::{
+        sliding_window::{
+            SlidingWindowRateLimiterBuilder, DEFAULT_WINDOW_DURATION, DEFAULT_WINDOW_SIZE,
+        },
+        RedisSettings, DEFAULT_REDIS_HOST, DEFAULT_REDIS_PORT,
+    };
 
     #[test]
     fn should_build_rate_limiter_with_default_options() {
