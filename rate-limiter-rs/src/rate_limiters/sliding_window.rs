@@ -1,5 +1,5 @@
 use redis::Client as RedisClient;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 use crate::{
     entities::{RateLimiterResponse, RequestAllowed, RequestThrottled},
@@ -105,7 +105,7 @@ impl RateLimiter for SlidingWindowRateLimiter {
 
         let mut con = self.redis_client.get_connection()?;
 
-        // TODO: document this is not monotonic
+        // Beware that this is NOT monotonic!
         let current_ts = SystemTime::now();
 
         let current_ts_epoch_time = as_epoch_time(current_ts)?;
