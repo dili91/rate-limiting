@@ -1,3 +1,51 @@
+//! Implementation of a revised token bucket rate limiter.
+//!
+//! ## Implementation details
+//!
+//! Unlike traditional token bucket rate limiters, this implementation does not
+//! refill the bucket at a predefined interval rate, but it creates a bucket on the
+//! very first request belonging to the same ip address, or a custom origin
+//! identifier, with a configured expiry time.
+//!
+//! Compared to a classic token bucket implementation
+//! such approach should be slightly more efficient with regards to memory
+//! consumption, as we have buckets held in memory just for those IP addresses
+//! (or origin identifiers) that actually hit our service.
+//!
+//! The disadvantage of this solution compared to a canonical token bucket
+//! rate limiter is that once the request budget is reached, the caller
+//! should wait the bucket expiration before firing any new request, as
+//! opposed to having the request budget bumped of one (or more) token
+//! at a regular interval, typically 1 or few seconds.
+//!
+//! Just like any other Token Bucket implementation it does not prevent bursts of requests
+//! happening in adjacent windows.
+//!
+//! ## Example
+//!
+//! ```
+//! use std::net::{IpAddr, Ipv4Addr};
+//! use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
+//!     RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled
+//! };
+//!
+//! let rate_limiter = RateLimiterFactory::token_bucket()
+//!     .build()
+//!     .unwrap();
+//! let ip_address = IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4));
+//! let request_id = RequestIdentifier::Ip(ip_address);
+//!
+//! let rate_limiter_response = rate_limiter.check_request(request_id).unwrap();
+//!
+//! match rate_limiter_response {
+//!     RateLimiterResponse::RequestAllowed(RequestAllowed {remaining_request_counter}) => {
+//!         println!("Request allowed! Remaining request counter is {0}.", remaining_request_counter);
+//!     },
+//!     RateLimiterResponse::RequestThrottled(RequestThrottled {retry_in}) => {
+//!         println!("Request throttled! Retry in {0} seconds.", retry_in.as_secs());
+//!     },
+//! }
+//! ```
 use std::time::Duration;
 
 use redis::Client as RedisClient;
@@ -23,54 +71,6 @@ pub struct TokenBucketRateLimiter {
     pub redis_client: RedisClient,
 }
 
-/// Implementation of a revised token bucket rate limiter.
-///
-/// ## Implementation details
-///
-/// Unlike traditional token bucket rate limiters, this implementation does not
-/// refill the bucket at a predefined interval rate, but it creates a bucket on the
-/// very first request belonging to the same ip address, or a custom origin
-/// identifier, with a configured expiry time.
-///
-/// Compared to a classic token bucket implementation
-/// such approach should be slightly more efficient with regards to memory
-/// consumption, as we have buckets held in memory just for those IP addresses
-/// (or origin identifiers) that actually hit our service.
-///
-/// The disadvantage of this solution compared to a canonical token bucket
-/// rate limiter is that once the request budget is reached, the caller
-/// should wait the bucket expiration before firing any new request, as
-/// opposed to having the request budget bumped of one (or more) token
-/// at a regular interval, typically 1 or few seconds.
-///
-/// Just like any other Token Bucket implementation it does not prevent bursts of requests
-/// happening in adjacent windows.
-///
-/// ## Example
-///
-/// ```
-/// use std::net::{IpAddr, Ipv4Addr};
-/// use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
-///     RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled
-/// };
-///
-/// let rate_limiter = RateLimiterFactory::token_bucket()
-///     .build()
-///     .unwrap();
-/// let ip_address = IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4));
-/// let request_id = RequestIdentifier::Ip(ip_address);
-///
-/// let rate_limiter_response = rate_limiter.check_request(request_id).unwrap();
-///
-/// match rate_limiter_response {
-///     RateLimiterResponse::RequestAllowed(RequestAllowed {remaining_request_counter}) => {
-///         println!("Request allowed! Remaining request counter is {0}.", remaining_request_counter);
-///     },
-///     RateLimiterResponse::RequestThrottled(RequestThrottled {retry_in}) => {
-///         println!("Request throttled! Retry in {0} seconds.", retry_in.as_secs());
-///     },
-/// }
-/// ```
 impl RateLimiter for TokenBucketRateLimiter {
     /// Function that returns the result of the rate limiter checks. Yields an error in case of troubles
     /// connecting to the underlying redis instance.

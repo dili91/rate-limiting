@@ -1,3 +1,4 @@
+//! Builder pattern for _sliding window_ rate limiters
 use std::time::Duration;
 
 use redis::Client as RedisClient;

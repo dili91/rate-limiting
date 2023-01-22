@@ -1,3 +1,4 @@
+//! Factory pattern for rate limiters. Used by the consumers of this crate.
 use crate::builders::{
     sliding_window::SlidingWindowRateLimiterBuilder, token_bucket::TokenBucketRateLimiterBuilder,
 };

@@ -1,3 +1,35 @@
+//! Implementation of a sliding window rate limiter.
+//!
+//! ## Implementation details
+//!
+//! Implements the sliding window rate liming algorithm, allowing a maximum of `window_size` request
+//! in the configured duration defined by the `window_duration` parameter.
+//!
+//! ## Example
+//!
+//! ```
+//! use std::net::{IpAddr, Ipv4Addr};
+//! use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
+//!     RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled
+//! };
+//!
+//! let rate_limiter = RateLimiterFactory::sliding_window()
+//!     .build()
+//!     .unwrap();
+//! let ip_address = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+//! let request_id = RequestIdentifier::Ip(ip_address);
+//!
+//! let rate_limiter_response = rate_limiter.check_request(request_id).unwrap();
+//!
+//! match rate_limiter_response {
+//!     RateLimiterResponse::RequestAllowed(RequestAllowed {remaining_request_counter}) => {
+//!         println!("Request allowed! Remaining request counter is {0}.", remaining_request_counter);
+//!     },
+//!     RateLimiterResponse::RequestThrottled(RequestThrottled {retry_in}) => {
+//!         println!("Request throttled! Retry in {0} seconds.", retry_in.as_secs());
+//!     },
+//! }
+//! ```
 use redis::Client as RedisClient;
 use std::time::{Duration, SystemTime};
 
@@ -21,38 +53,6 @@ pub struct SlidingWindowRateLimiter {
     pub redis_client: RedisClient,
 }
 
-/// Implementation of a sliding window rate limiter.
-///
-/// ## Implementation details
-///
-/// Implements the sliding window rate liming algorithm, allowing a maximum of `window_size` request
-/// in the configured duration defined by the `window_duration` parameter.
-///
-/// ## Example
-///
-/// ```
-/// use std::net::{IpAddr, Ipv4Addr};
-/// use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
-///     RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled
-/// };
-///
-/// let rate_limiter = RateLimiterFactory::sliding_window()
-///     .build()
-///     .unwrap();
-/// let ip_address = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
-/// let request_id = RequestIdentifier::Ip(ip_address);
-///
-/// let rate_limiter_response = rate_limiter.check_request(request_id).unwrap();
-///
-/// match rate_limiter_response {
-///     RateLimiterResponse::RequestAllowed(RequestAllowed {remaining_request_counter}) => {
-///         println!("Request allowed! Remaining request counter is {0}.", remaining_request_counter);
-///     },
-///     RateLimiterResponse::RequestThrottled(RequestThrottled {retry_in}) => {
-///         println!("Request throttled! Retry in {0} seconds.", retry_in.as_secs());
-///     },
-/// }
-/// ```
 impl RateLimiter for SlidingWindowRateLimiter {
     /// Function that returns the result of the rate limiter checks. Yields an error in case of troubles
     /// connecting to the underlying redis instance.

@@ -1,3 +1,4 @@
+//! Module that includes builders to construct instances of the 2 rate limiter types. Used internally.
 pub mod sliding_window;
 pub mod token_bucket;
 

@@ -1,3 +1,9 @@
+//! Rate limiting crate that provides:
+//! - a revised [token bucket](./rate_limiters/token_bucket/index.html) implementation;
+//! - a [sliding window](./rate_limiters/sliding_window/index.html) implementation.
+//!
+//! Both implementations are meant to work in a distributed environment and they are based on Redis
+//! for their remote state management.
 use std::{net::IpAddr, time::Duration};
 
 use errors::RateLimiterError;
@@ -47,7 +53,7 @@ pub enum RateLimiterResponse {
     RequestThrottled(RequestThrottled),
 }
 
-/// enum that represents the possible input types for our rate limiter
+/// Enum that represents the possible input types for our rate limiter
 #[derive(Clone)]
 pub enum RequestIdentifier {
     /// An Ip address. Used when we want to rate limit requests based on the Ip address

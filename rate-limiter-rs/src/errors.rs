@@ -1,3 +1,4 @@
+//! Module that includes the library custom errors.
 use redis::RedisError;
 
 /// Enum that represent the error potentially returned by the rate limiter component

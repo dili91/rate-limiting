@@ -1,3 +1,4 @@
+//! Builder pattern for sliding _token bucket_ rate limiters.
 use std::time::Duration;
 
 use redis::Client as RedisClient;
