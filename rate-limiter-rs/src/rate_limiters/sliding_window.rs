@@ -1,5 +1,5 @@
 use redis::Client as RedisClient;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, SystemTime};
 
 use crate::{
     entities::{RateLimiterResponse, RequestAllowed, RequestThrottled},

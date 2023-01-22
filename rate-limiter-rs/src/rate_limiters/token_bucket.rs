@@ -29,7 +29,7 @@ pub struct TokenBucketRateLimiter {
 /// ## Implementation details
 ///
 /// Unlike traditional token bucket rate limiters, this implementation does not
-/// refill the bucket at a fixed interval rate, but it creates a bucket on the
+/// refill the bucket at a predefined interval rate, but it creates a bucket on the
 /// very first request belonging to the same ip address, or a custom origin
 /// identifier, with a configured expiry time.
 ///
@@ -179,7 +179,10 @@ mod test {
 
         //assert
         assert!(res.is_err());
-        assert!(matches!(res.unwrap_err(), RateLimiterError::IoError(_))) //TODO: improve assertion
+        assert!(matches!(
+            res.unwrap_err(),
+            RateLimiterError::IoError(redis::RedisError { .. })
+        ))
     }
 
     #[rstest]

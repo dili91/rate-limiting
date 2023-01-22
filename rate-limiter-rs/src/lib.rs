@@ -23,8 +23,6 @@ pub trait RateLimiter {
     ) -> Result<RateLimiterResponse, RateLimiterError>;
 }
 
-//TODO: remove _fixed_ from token bucket
-
 #[cfg(test)]
 mod test {
     use std::net::{IpAddr, Ipv4Addr};

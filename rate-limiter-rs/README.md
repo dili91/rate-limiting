@@ -6,7 +6,7 @@ revised and simplified version of the [Token bucket algorithm](https://en.wikipe
 ## Implementation details
 
 Unlike traditional token bucket rate limiters, this implementation does not
-refill the bucket at a fixed interval rate, but it creates a bucket on the
+refill the bucket at a predefined interval rate, but it creates a bucket on the
 very first request belonging to the same ip address, or a custom origin
 identifier, with a configured expiry time.
 
