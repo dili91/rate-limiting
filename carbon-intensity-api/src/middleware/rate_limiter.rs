@@ -3,7 +3,6 @@ use std::{
     net::AddrParseError,
     rc::Rc,
     str::FromStr,
-    sync::Arc,
 };
 
 use actix_web::http::header::{InvalidHeaderName, InvalidHeaderValue};
@@ -20,8 +19,7 @@ use actix_web::{
 use derive_more::Display;
 use futures_util::{future::LocalBoxFuture, FutureExt};
 use rate_limiter_rs::{
-    entities::{RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled},
-    RateLimiter,
+    RateLimiter, RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled,
 };
 
 pub const RATE_LIMITER_REMAINING_REQUEST_HTTP_HEADER_NAME: &str = "X-Remaining-Request";

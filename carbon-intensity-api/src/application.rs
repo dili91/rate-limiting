@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration, rc::Rc};
+use std::{rc::Rc, time::Duration};
 
 use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
 use rate_limiter_rs::{builders::RedisSettings, factory::RateLimiterFactory};
@@ -17,20 +17,17 @@ pub struct Application {
 impl Application {
     /// Builds the main app entrypoint
     pub fn build(settings: AppSettings) -> Self {
-
-        let rate_limiter = 
-            RateLimiterFactory::sliding_window()
-                .with_window_size(settings.rate_limiter.bucket_size)
-                .with_window_duration(Duration::from_secs(
-                    settings.rate_limiter.bucket_validity_seconds,
-                ))
-                .with_redis_settings(RedisSettings {
-                    host: settings.rate_limiter.redis_server.host,
-                    port: settings.rate_limiter.redis_server.port,
-                })
-                .build()
-                .expect("unable to setup rate limiter component");
-        ;
+        let rate_limiter = RateLimiterFactory::sliding_window()
+            .with_window_size(settings.rate_limiter.bucket_size)
+            .with_window_duration(Duration::from_secs(
+                settings.rate_limiter.bucket_validity_seconds,
+            ))
+            .with_redis_settings(RedisSettings {
+                host: settings.rate_limiter.redis_server.host,
+                port: settings.rate_limiter.redis_server.port,
+            })
+            .build()
+            .expect("unable to setup rate limiter component");
 
         let server = HttpServer::new(move || {
             App::new()
@@ -38,9 +35,9 @@ impl Application {
                 .route("/health_check", web::get().to(health_check))
                 .service(
                     web::scope("/carbon/intensity")
-                        .wrap(RateLimiterMiddlewareFactory::with_rate_limiter(
-                            Rc::new(rate_limiter.clone()),
-                        ))
+                        .wrap(RateLimiterMiddlewareFactory::with_rate_limiter(Rc::new(
+                            rate_limiter.clone(),
+                        )))
                         .route("", web::get().to(get_intensity)),
                 )
         });

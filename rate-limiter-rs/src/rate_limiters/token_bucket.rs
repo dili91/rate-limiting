@@ -3,9 +3,8 @@ use std::time::Duration;
 use redis::Client as RedisClient;
 
 use crate::{
-    entities::{RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled},
-    errors::RateLimiterError,
-    RateLimiter,
+    errors::RateLimiterError, RateLimiter, RateLimiterResponse, RequestAllowed, RequestIdentifier,
+    RequestThrottled,
 };
 
 /// Represents a distributed token bucket rate limiter
@@ -52,7 +51,7 @@ pub struct TokenBucketRateLimiter {
 /// ```
 /// use std::net::{IpAddr, Ipv4Addr};
 /// use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
-///     entities::{RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled}
+///     RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled
 /// };
 ///
 /// let rate_limiter = RateLimiterFactory::token_bucket()
@@ -154,8 +153,8 @@ mod test {
     use uuid::Uuid;
 
     use crate::{
-        builders::RedisSettings, entities::RequestIdentifier, errors::RateLimiterError,
-        factory::RateLimiterFactory, RateLimiter,
+        builders::RedisSettings, errors::RateLimiterError, factory::RateLimiterFactory,
+        RateLimiter, RequestIdentifier,
     };
 
     #[rstest]

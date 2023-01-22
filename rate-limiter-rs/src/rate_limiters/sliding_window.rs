@@ -2,9 +2,7 @@ use redis::Client as RedisClient;
 use std::time::{Duration, SystemTime};
 
 use crate::{
-    entities::{RateLimiterResponse, RequestAllowed, RequestThrottled},
-    errors::RateLimiterError,
-    RateLimiter,
+    errors::RateLimiterError, RateLimiter, RateLimiterResponse, RequestAllowed, RequestThrottled,
 };
 
 /// Represents a distributed token bucket rate limiter
@@ -35,7 +33,7 @@ pub struct SlidingWindowRateLimiter {
 /// ```
 /// use std::net::{IpAddr, Ipv4Addr};
 /// use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
-///     entities::{RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled}
+///     RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled
 /// };
 ///
 /// let rate_limiter = RateLimiterFactory::sliding_window()
@@ -99,8 +97,8 @@ impl RateLimiter for SlidingWindowRateLimiter {
     /// ```
     fn check_request(
         &self,
-        request_identifier: crate::entities::RequestIdentifier,
-    ) -> Result<crate::entities::RateLimiterResponse, crate::errors::RateLimiterError> {
+        request_identifier: crate::RequestIdentifier,
+    ) -> Result<crate::RateLimiterResponse, crate::errors::RateLimiterError> {
         let key = &self.build_request_key(request_identifier);
 
         let mut con = self.redis_client.get_connection()?;
@@ -190,8 +188,8 @@ mod test {
     use uuid::Uuid;
 
     use crate::{
-        builders::RedisSettings, entities::RequestIdentifier, errors::RateLimiterError,
-        factory::RateLimiterFactory, RateLimiter,
+        builders::RedisSettings, errors::RateLimiterError, factory::RateLimiterFactory,
+        RateLimiter, RequestIdentifier,
     };
 
     use super::as_epoch_time;
