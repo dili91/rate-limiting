@@ -23,17 +23,6 @@ pub struct SlidingWindowRateLimiter {
     pub redis_client: RedisClient,
 }
 
-//TODO: move into a sep function and test
-impl SlidingWindowRateLimiter {
-    fn as_epoch_time(&self, ts: SystemTime) -> Result<u64, crate::RateLimiterError> {
-        let epoch_time_nanos = ts
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .map_err(|_e| RateLimiterError::ComputeError)?
-            .as_nanos();
-        u64::try_from(epoch_time_nanos).map_err(|_e| RateLimiterError::ComputeError)
-    }
-}
-
 /// Implementation of a sliding window rate limiter.
 ///
 /// ## Implementation details
@@ -119,13 +108,13 @@ impl RateLimiter for SlidingWindowRateLimiter {
         // TODO: document this is not monotonic
         let current_ts = SystemTime::now();
 
-        let current_ts_epoch_time = self.as_epoch_time(current_ts)?;
+        let current_ts_epoch_time = as_epoch_time(current_ts)?;
 
         let window_start_ts = current_ts
             .checked_sub(self.window_duration)
             .ok_or(RateLimiterError::ComputeError)?;
 
-        let window_start_epoch_time = self.as_epoch_time(window_start_ts)?;
+        let window_start_epoch_time = as_epoch_time(window_start_ts)?;
 
         let (request_count, oldest_requests_in_current_window): (u64, Vec<String>) =
             redis::transaction(&mut con, &[key], |con, pipe| {
@@ -137,8 +126,8 @@ impl RateLimiter for SlidingWindowRateLimiter {
                     .cmd("ZADD")
                     .arg(key)
                     .arg("NX")
-                    .arg(current_ts_epoch_time)
-                    .arg(current_ts_epoch_time)
+                    .arg(current_ts_epoch_time as u64)
+                    .arg(current_ts_epoch_time as u64)
                     .ignore()
                     .zcount(key, "-inf", "+inf")
                     .cmd("ZREVRANGEBYSCORE")
@@ -166,7 +155,7 @@ impl RateLimiter for SlidingWindowRateLimiter {
             })
         } else {
             let time_passed_from_first_req =
-                Duration::from_nanos(current_ts_epoch_time - oldest_request_epoch_time);
+                Duration::from_nanos(current_ts_epoch_time as u64 - oldest_request_epoch_time);
             let retry_in = self
                 .window_duration
                 .saturating_sub(time_passed_from_first_req);
@@ -178,12 +167,21 @@ impl RateLimiter for SlidingWindowRateLimiter {
     }
 }
 
+/// Utility method that returns the given timestamp in epoch time, with nanoseconds precision.
+fn as_epoch_time(ts: SystemTime) -> Result<u128, crate::RateLimiterError> {
+    let epoch_time_nanos = ts
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map_err(|_e| RateLimiterError::ComputeError)?
+        .as_nanos();
+    Ok(epoch_time_nanos)
+}
+
 #[cfg(test)]
 mod test {
     use std::{
         cmp,
         net::{IpAddr, Ipv4Addr},
-        time::Duration,
+        time::{Duration, SystemTime},
     };
 
     use rand::Rng;
@@ -195,6 +193,8 @@ mod test {
         builders::RedisSettings, entities::RequestIdentifier, errors::RateLimiterError,
         factory::RateLimiterFactory, RateLimiter,
     };
+
+    use super::as_epoch_time;
 
     #[rstest]
     #[case::ip(RequestIdentifier::Ip(generate_random_ip()))]
@@ -265,6 +265,15 @@ mod test {
                 )
             }
         }
+    }
+
+    #[test]
+    fn as_epoch_time_should_return_current_time() {
+        let now = SystemTime::now();
+
+        let now_epoch = as_epoch_time(now);
+
+        assert!(now_epoch.is_ok())
     }
 
     fn generate_random_ip() -> IpAddr {
