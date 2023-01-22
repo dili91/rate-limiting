@@ -10,6 +10,7 @@ and relies on [Redis](https://redis.io/) for its distributed state management.
 
 This repository includes 2 main directories:
 
-- [rate-limiter-rs](./rate-limiter-rs/): the rate limiter library;
+- [rate-limiter-rs](./rate-limiter-rs/): the rate limiter library, that offers
+both a _sliding window_ and a (simplified) _token bucket_ implementation; 
 - [carbon-intensity-api](./carbon-intensity-api/): a sample project exposing
 a REST API, that uses the above mentioned rate limiter component.
