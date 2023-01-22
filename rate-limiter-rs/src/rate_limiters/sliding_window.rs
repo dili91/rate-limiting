@@ -23,7 +23,7 @@ pub struct SlidingWindowRateLimiter {
     pub redis_client: RedisClient,
 }
 
-//TODO: move into a sep function
+//TODO: move into a sep function and test
 impl SlidingWindowRateLimiter {
     fn as_epoch_time(&self, ts: SystemTime) -> Result<u64, crate::RateLimiterError> {
         let epoch_time_nanos = ts
