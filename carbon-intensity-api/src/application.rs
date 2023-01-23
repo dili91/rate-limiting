@@ -17,10 +17,10 @@ pub struct Application {
 impl Application {
     /// Builds the main app entrypoint
     pub fn build(settings: AppSettings) -> Self {
-        let rate_limiter = RateLimiterFactory::token_bucket()
-            .with_bucket_size(settings.rate_limiter.bucket_size)
-            .with_bucket_validity(Duration::from_secs(
-                settings.rate_limiter.bucket_validity_seconds,
+        let rate_limiter = RateLimiterFactory::fixed_window()
+            .with_window_size(settings.rate_limiter.window_size)
+            .with_window_duration(Duration::from_secs(
+                settings.rate_limiter.window_duration_seconds,
             ))
             .with_redis_settings(RedisSettings {
                 host: settings.rate_limiter.redis_server.host,

@@ -7,6 +7,6 @@ to limit the number of incoming requests based on the caller's IP address.
 This repository includes 2 main directories:
 
 - [rate-limiter-rs](./rate-limiter-rs/): the rate limiter library, that offers
-both a _sliding window_ and a (simplified) _token bucket_ implementation;
+both a _fixed window_ and a _sliding window_ implementations;
 - [carbon-intensity-api](./carbon-intensity-api/): a sample project exposing
 a REST API, that uses the above mentioned rate limiter component.

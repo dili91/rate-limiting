@@ -15,15 +15,15 @@ pub struct ServerSettings {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct RateLimiterSettings {
-    pub bucket_size: u64,
-    pub bucket_validity_seconds: u64,
+    pub window_size: u64,
+    pub window_duration_seconds: u64,
     pub redis_server: ServerSettings,
 }
 
 const DEFAULT_HTTP_SERVER_HOST: &str = "0.0.0.0";
 const DEFAULT_HTTP_SERVER_PORT: u16 = 9000;
-const DEFAULT_RATE_LIMITER_BUCKET_SIZE: u64 = 5;
-const DEFAULT_RATE_LIMITER_BUCKET_VALIDITY_SECONDS: u64 = 60;
+const DEFAULT_RATE_LIMITER_WINDOW_SIZE: u64 = 5;
+const DEFAULT_RATE_LIMITER_WINDOW_DURATION_SECONDS: u64 = 60;
 const DEFAULT_REDIS_SERVER_HOST: &str = "127.0.0.1";
 const DEFAULT_REDIS_SERVER_PORT: u16 = 6379;
 
@@ -32,10 +32,10 @@ impl AppSettings {
         let config_builder = Config::builder()
             .set_default("http_server.host", DEFAULT_HTTP_SERVER_HOST)?
             .set_default("http_server.port", DEFAULT_HTTP_SERVER_PORT)?
-            .set_default("rate_limiter.bucket_size", DEFAULT_RATE_LIMITER_BUCKET_SIZE)?
+            .set_default("rate_limiter.window_size", DEFAULT_RATE_LIMITER_WINDOW_SIZE)?
             .set_default(
-                "rate_limiter.bucket_validity_seconds",
-                DEFAULT_RATE_LIMITER_BUCKET_VALIDITY_SECONDS,
+                "rate_limiter.window_duration_seconds",
+                DEFAULT_RATE_LIMITER_WINDOW_DURATION_SECONDS,
             )?
             .set_default("rate_limiter.redis_server.host", DEFAULT_REDIS_SERVER_HOST)?
             .set_default("rate_limiter.redis_server.port", DEFAULT_REDIS_SERVER_PORT)?

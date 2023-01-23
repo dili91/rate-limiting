@@ -22,8 +22,8 @@ use reqwest::{
 async fn should_return_200_if_within_request_limit() {
     //arrange
     let rate_limiter_settings = RateLimiterSettings {
-        bucket_size: 5,
-        bucket_validity_seconds: 15,
+        window_size: 5,
+        window_duration_seconds: 15,
         redis_server: ServerSettings {
             host: "127.0.0.1".to_string(),
             port: 6379,
@@ -55,8 +55,8 @@ async fn should_return_200_if_within_request_limit() {
 async fn should_return_200_if_unable_to_check_rate_limit() {
     //arrange
     let rate_limiter_settings = RateLimiterSettings {
-        bucket_size: 5,
-        bucket_validity_seconds: 15,
+        window_size: 5,
+        window_duration_seconds: 15,
         redis_server: ServerSettings {
             host: "127.0.0.1".to_string(),
             port: 6378,
@@ -79,8 +79,8 @@ async fn should_return_200_if_unable_to_check_rate_limit() {
 async fn should_return_429_if_request_is_throttled() {
     //arrange
     let rate_limiter_settings = RateLimiterSettings {
-        bucket_size: 5,
-        bucket_validity_seconds: 15,
+        window_size: 5,
+        window_duration_seconds: 15,
         redis_server: ServerSettings {
             host: "127.0.0.1".to_string(),
             port: 6379,
@@ -90,7 +90,7 @@ async fn should_return_429_if_request_is_throttled() {
     let x_forwarded_for_ip_address = generate_random_ip();
 
     //act & assert
-    for _i in 0..rate_limiter_settings.bucket_size {
+    for _i in 0..rate_limiter_settings.window_size {
         let response = get_intensity_data(api_endpoint.clone(), x_forwarded_for_ip_address).await;
         assert!(response.status().is_success());
         assert!(response
@@ -109,8 +109,8 @@ async fn should_return_429_if_request_is_throttled() {
 async fn should_never_return_429_on_non_rate_limited_endpoints() {
     //arrange
     let rate_limiter_settings = RateLimiterSettings {
-        bucket_size: 5,
-        bucket_validity_seconds: 15,
+        window_size: 5,
+        window_duration_seconds: 15,
         redis_server: ServerSettings {
             host: "127.0.0.1".to_string(),
             port: 6379,
@@ -120,7 +120,7 @@ async fn should_never_return_429_on_non_rate_limited_endpoints() {
     let x_forwarded_for_ip_address = generate_random_ip();
 
     //act & assert
-    for _i in 0..3 * rate_limiter_settings.bucket_size {
+    for _i in 0..3 * rate_limiter_settings.window_size {
         // We're firing requests for 3 times limit configured on the rate limiter
         let response = get_test_client()
             .get(format!("{api_endpoint}/health_check"))

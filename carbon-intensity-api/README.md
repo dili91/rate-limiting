@@ -17,8 +17,8 @@ as per below configuration.
 
 ## Rate limiting configuration
 
-Currently the rate limiter is configured to have a bucket size of `5` token,
-and a validity of `60s`. Rate limiting is based on the IP address from which the
+Currently the rate limiter is configured to have a window size of `5`,
+and a duration of `60s`. Rate limiting is based on the IP address from which the
 request originates. The same IP address can invoke the carbon intensity endpoint
 only 5 times in a minute. Every further request should be throttled and the caller
 should receive [a standard 429 HTTP status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429)
@@ -46,7 +46,7 @@ I'm up and running.
 When calling a rate limited endpoint, in case the request is allowed, we
 should get as well a 200 and a custom `x-remaining-request` HTTP header
 that includes the updated counter of the available requests in
-the current bucket:
+the current window:
 
 ```shell
 http :9000/carbon/intensity

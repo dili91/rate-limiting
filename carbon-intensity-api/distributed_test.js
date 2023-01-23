@@ -1,10 +1,12 @@
 import http from 'k6/http';
 import { Counter } from 'k6/metrics';
-import { sleep } from 'k6';
+import { check } from 'k6';
+
 
 const api_responses = new Counter('api_responses');
 
 export const options = {
+    httpDebug: 'full',
     vus: 25,
     iterations: 100,
     thresholds: {
@@ -26,5 +28,7 @@ export default function () {
 
     api_responses.add(1, {status: res.status})
 
-    sleep(1);
+    const output = check(res, {
+        'Status code is either 200 or 429': (r) => r.status === 200 || r.status === 429,
+    });
 }

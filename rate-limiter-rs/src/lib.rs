@@ -1,5 +1,5 @@
 //! Rate limiting crate that provides:
-//! - a revised [token bucket](./rate_limiters/token_bucket/index.html) implementation;
+//! - a [fixed window](./rate_limiters/fixed_window/index.html) implementation;
 //! - a [sliding window](./rate_limiters/sliding_window/index.html) implementation.
 //!
 //! Both implementations are meant to work in a distributed environment and they are based on Redis
@@ -15,7 +15,7 @@ pub mod rate_limiters;
 
 /// Trait representing the capabilities offered by the rate limiter
 pub trait RateLimiter {
-    /// method that builds a request key based on the different input
+    /// Method that builds a request key based on the different input
     fn build_request_key(&self, request_identifier: RequestIdentifier) -> String {
         match request_identifier {
             RequestIdentifier::Ip(ip) => format!("rl:ip_{}", ip),
@@ -23,6 +23,9 @@ pub trait RateLimiter {
         }
     }
 
+    /// Method that checks whether a request is allowed or should be throttled instead.
+    /// Returns an error if unable to check, usually due to issues connecting to the
+    /// underlying Redis instance.
     fn check_request(
         &self,
         request_identifier: RequestIdentifier,
@@ -104,7 +107,7 @@ mod test {
         #[case] request_identifier: RequestIdentifier,
         #[case] expected_key: &str,
     ) {
-        let rate_limiter = RateLimiterFactory::token_bucket().build().unwrap();
+        let rate_limiter = RateLimiterFactory::fixed_window().build().unwrap();
 
         assert_eq!(
             rate_limiter.build_request_key(request_identifier),

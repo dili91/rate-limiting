@@ -1,6 +1,6 @@
 //! Factory pattern for rate limiters. Used by the consumers of this crate.
 use crate::builders::{
-    sliding_window::SlidingWindowRateLimiterBuilder, token_bucket::TokenBucketRateLimiterBuilder,
+    fixed_window::FixedWindowRateLimiterBuilder, sliding_window::SlidingWindowRateLimiterBuilder,
 };
 
 /// A factory used as entrypoint for building rate limiter variants
@@ -9,11 +9,12 @@ use crate::builders::{
 pub struct RateLimiterFactory;
 
 impl RateLimiterFactory {
-    /// Provides a builder for a token bucket rate limiter.
-    pub fn token_bucket() -> TokenBucketRateLimiterBuilder {
-        TokenBucketRateLimiterBuilder::default()
+    /// Provides a builder for a fixed window rate limiter.
+    pub fn fixed_window() -> FixedWindowRateLimiterBuilder {
+        FixedWindowRateLimiterBuilder::default()
     }
 
+    /// Provides a builder for a sliding window rate limiter.
     pub fn sliding_window() -> SlidingWindowRateLimiterBuilder {
         SlidingWindowRateLimiterBuilder::default()
     }

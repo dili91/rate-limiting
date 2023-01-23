@@ -37,7 +37,7 @@ use crate::{
     errors::RateLimiterError, RateLimiter, RateLimiterResponse, RequestAllowed, RequestThrottled,
 };
 
-/// Represents a distributed token bucket rate limiter
+/// Represents a distributed sliding window rate limiter
 /// based on [Redis](https://redis.io/)
 #[derive(Clone)]
 pub struct SlidingWindowRateLimiter {
@@ -201,7 +201,7 @@ mod test {
     )]
     fn should_yield_a_connection_error(#[case] request_identifier: RequestIdentifier) {
         //arrange
-        let rate_limiter = RateLimiterFactory::token_bucket()
+        let rate_limiter = RateLimiterFactory::fixed_window()
             .with_redis_settings(RedisSettings {
                 host: "whatever".to_string(),
                 port: 1,

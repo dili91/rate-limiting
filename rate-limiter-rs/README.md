@@ -1,7 +1,7 @@
 # rate-limiter-rs
 
 A rate limiter library written in Rust and based on Redis that offers
-both a _token bucket_ and a _sliding window_ implementation.
+both a _fixed window_ and a _sliding window_ implementations.
 
 ## Implementation details
 
