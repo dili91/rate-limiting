@@ -6,15 +6,14 @@ import { check } from 'k6';
 const api_responses = new Counter('api_responses');
 
 export const options = {
-    // httpDebug: 'full',
     vus: 25,
-    iterations: 100,
+    iterations: 500,
     thresholds: {
         'api_responses': [
-            'count == 100'
+            'count == 500'
         ],
         'api_responses{status:429}': [
-            'count == 95'
+            'count == 495'
         ],
         'api_responses{status:200}': [
             'count == 5'
