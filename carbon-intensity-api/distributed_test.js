@@ -6,7 +6,7 @@ import { check } from 'k6';
 const api_responses = new Counter('api_responses');
 
 export const options = {
-    httpDebug: 'full',
+    // httpDebug: 'full',
     vus: 25,
     iterations: 100,
     thresholds: {
@@ -20,7 +20,6 @@ export const options = {
             'count == 5'
         ],
     },
-    'summaryTrendStats': ['min', 'med', 'avg', 'p(90)', 'p(95)', 'max', 'count'],
 };
 
 export default function () {
