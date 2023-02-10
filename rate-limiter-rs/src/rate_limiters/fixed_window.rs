@@ -63,11 +63,9 @@ impl RateLimiter for FixedWindowRateLimiter {
     /// ## Implementation details
     /// The implementation of this method heavily relies on Redis commands. It atomically runs a set commands to:
     ///
-    /// 1. Create a key, representing the rate limiter, if not existing, with value
-    /// equals to 0;
+    /// 1. Increase by 1 the value of a key, if existing. Otherwise set it to 0.
     /// 2. Set the configured expiration on it, if not set already;
-    /// 3. Increase by 1 the existing counter;
-    /// 4. Get the updated expiry of the rate limiter.
+    /// 3. Get the updated expiry of the rate limiter.
     ///
     /// The above four commands are wrapped into a Redis [transaction](https://redis.io/docs/manual/transactions/) with the helper provided by the underlying redis crate used.
     /// The combination of `WATCH`, `MULTI` and `EXEC` commands here protect this piece of code from race conditions when multiple
@@ -78,9 +76,8 @@ impl RateLimiter for FixedWindowRateLimiter {
     /// ```ignore
     /// 1675511728.833664 [0 172.28.0.5:48922] "WATCH" "rl:ip_172.28.0.6"
     /// 1675511728.834677 [0 172.28.0.5:48922] "MULTI"
-    /// 1675511728.835237 [0 172.28.0.5:48922] "SETNX" "rl:ip_172.28.0.6" "0"
+    /// 1675511728.835237 [0 172.28.0.5:48922] "INCR" "rl:ip_172.28.0.6"
     /// 1675511728.835358 [0 172.28.0.5:48922] "EXPIRE" "rl:ip_172.28.0.6" "60" "NX"
-    /// 1675511728.835455 [0 172.28.0.5:48922] "INCRBY" "rl:ip_172.28.0.6" "1"
     /// 1675511728.835526 [0 172.28.0.5:48922] "TTL" "rl:ip_172.28.0.6"
     /// 1675511728.835626 [0 172.28.0.5:48922] "EXEC"
     /// 1675511728.836371 [0 172.28.0.5:48922] "UNWATCH"
@@ -95,18 +92,13 @@ impl RateLimiter for FixedWindowRateLimiter {
 
         let (executed_request_counter, expire_in_seconds): (u64, u64) =
             redis::transaction(&mut con, &[key], |con, pipe| {
-                pipe.cmd("SETNX")
+                pipe.cmd("INCR")
                     .arg(key)
-                    .arg(0)
-                    .ignore()
                     .cmd("EXPIRE")
                     .arg(key)
                     .arg(self.window_validity.as_secs())
                     .arg("NX")
                     .ignore()
-                    .cmd("INCRBY")
-                    .arg(key)
-                    .arg(1)
                     .cmd("TTL")
                     .arg(key)
                     .query(con)
