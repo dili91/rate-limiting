@@ -23,6 +23,7 @@ just b
 ```shell
 just t
 ```
+
 > [!NOTE]  
 > Some of the tests currently require a running Redis instance on your local machine.
 > the just recipe will spin up a Redis container on port 7379 by default.
