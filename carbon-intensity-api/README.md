@@ -83,23 +83,16 @@ retry-after: 56
 You've been throttled!
 ```
 
-## Building
-
-To build the solution:
-
-```shell
-cargo build
-```
-
 ## Running
 
 To run the app:
 
 ```shell
-cargo run
+just local-run
 ```
 
-&ast; Please note that a local Redis instance is required!
+> [!NOTE]  
+> A local Redis instance is required!
 
 ## Testing
 
@@ -116,7 +109,7 @@ above [samples](#samples) section.
 To run the automated e2e test suite:
 
 ```shell
-cargo nextest run
+just test
 ```
 
 ### Distributed/Load tests
@@ -132,7 +125,7 @@ entrypoint, listening on port 8080;
 To boot the stack you can simply run the boot script:
 
 ```shell
-./boot.sh
+just compose-run
 ```
 
 This will docker-compose up the above stack in detached mode.
@@ -146,7 +139,7 @@ You can run the distributed test with the k6 CLI, either via docker or
 installed locally:
 
 ```shell
-k6 run distributed_test.js
+just load-test
 ```
 
 The test scenario will fire 100 requests on 25 simultaneous virtual users
