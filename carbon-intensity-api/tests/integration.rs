@@ -18,6 +18,9 @@ use reqwest::{
     Client, Response,
 };
 
+const REDIS_HOST: &str = "127.0.0.1";
+const REDIS_PORT: u16 = 7379;
+
 #[tokio::test]
 async fn should_return_200_if_within_request_limit() {
     //arrange
@@ -25,8 +28,8 @@ async fn should_return_200_if_within_request_limit() {
         window_size: 5,
         window_duration_seconds: 15,
         redis_server: ServerSettings {
-            host: "127.0.0.1".to_string(),
-            port: 6379,
+            host: REDIS_HOST.to_string(),
+            port: REDIS_PORT,
         },
     };
     let api_endpoint = spawn_app(rate_limiter_settings);
@@ -59,7 +62,7 @@ async fn should_return_200_if_unable_to_check_rate_limit() {
         window_duration_seconds: 15,
         redis_server: ServerSettings {
             host: "127.0.0.1".to_string(),
-            port: 6378,
+            port: 1234,
         },
     };
     let api_endpoint = spawn_app(rate_limiter_settings);
@@ -82,8 +85,8 @@ async fn should_return_429_if_request_is_throttled() {
         window_size: 5,
         window_duration_seconds: 15,
         redis_server: ServerSettings {
-            host: "127.0.0.1".to_string(),
-            port: 6379,
+            host: REDIS_HOST.to_string(),
+            port: REDIS_PORT,
         },
     };
     let api_endpoint = spawn_app(rate_limiter_settings.clone());
@@ -112,8 +115,8 @@ async fn should_never_return_429_on_non_rate_limited_endpoints() {
         window_size: 5,
         window_duration_seconds: 15,
         redis_server: ServerSettings {
-            host: "127.0.0.1".to_string(),
-            port: 6379,
+            host: REDIS_HOST.to_string(),
+            port: REDIS_PORT,
         },
     };
     let api_endpoint = spawn_app(rate_limiter_settings.clone());

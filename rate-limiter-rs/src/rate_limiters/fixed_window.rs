@@ -10,11 +10,15 @@
 //!
 //! ```
 //! use std::net::{IpAddr, Ipv4Addr};
-//! use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
+//! use rate_limiter_rs::{factory::RateLimiterFactory, builders::RedisSettings, RateLimiter,
 //!     RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled
 //! };
 //!
 //! let rate_limiter = RateLimiterFactory::fixed_window()
+//!     .with_redis_settings(RedisSettings{
+//!         host: "127.0.0.1".to_string(),
+//!         port: 7379
+//!     })
 //!     .build()
 //!     .unwrap();
 //! let ip_address = IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4));
@@ -106,7 +110,7 @@ impl RateLimiter for FixedWindowRateLimiter {
 
         let response = if executed_request_counter <= self.window_size {
             RateLimiterResponse::RequestAllowed(RequestAllowed {
-                remaining_request_counter: self.window_size - executed_request_counter as u64,
+                remaining_request_counter: self.window_size - executed_request_counter,
             })
         } else {
             RateLimiterResponse::RequestThrottled(RequestThrottled {
@@ -171,9 +175,14 @@ mod test {
         //arrange
         let window_size = 5;
         let window_duration = Duration::from_secs(60);
+        let redis_settings = RedisSettings {
+            host: "127.0.0.1".to_string(),
+            port: 7379,
+        };
         let rate_limiter = RateLimiterFactory::fixed_window()
             .with_window_size(window_size)
             .with_window_duration(window_duration)
+            .with_redis_settings(redis_settings)
             .build()
             .unwrap();
 

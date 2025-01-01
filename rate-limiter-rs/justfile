@@ -1,0 +1,17 @@
+alias b := build
+alias t := test
+
+format:
+    cargo fmt
+
+build:
+    cargo build
+
+test-startup:
+    docker run --name redis-standalone -p 7379:6379 -d redis:7.4.1-bookworm
+
+test-shutdown:
+    docker rm -f redis-standalone
+
+test: test-startup && test-shutdown
+    cargo nextest run

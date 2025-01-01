@@ -15,18 +15,18 @@ As of today, Redis is a strict requirement of this library.
 ## Building
 
 ```shell
-cargo build
+just b
 ```
 
 ## Testing
 
 ```shell
-cargo nextest run
+just t
 ```
 
-&ast; Please note that some of the tests currently require a running Redis
-instance on your local machine. To quickly start a redis server locally, you
-can spy on the [CI workflow](../.github/workflows/rate_limiter_rs.yml).
+> [!NOTE]  
+> Some of the tests currently require a running Redis instance on your local machine.
+> the just recipe will spin up a Redis container on port 7379 by default.
 
 ## Areas of improvements
 

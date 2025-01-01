@@ -4,7 +4,9 @@ This repository proposes an implementation of a distributed rate limiter written
 in Rust, and a REST API project example using the same rate limiter library
 to limit the number of incoming requests based on the caller's IP address.
 
-This repository includes 2 main directories:
+It is a demo project that helped me writing [this blog post](https://adilisio.com/posts/implementing-a-rate-limiter-for-our-api-in-rust/).
+
+There are 2 main directories:
 
 - [rate-limiter-rs](./rate-limiter-rs/): the rate limiter library, that offers
 both a _fixed window_ and a _sliding window_ implementations;

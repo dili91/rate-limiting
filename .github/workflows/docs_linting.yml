@@ -1,4 +1,4 @@
-name: Docs linting   
+name: READMEs linting   
 
 on:
   push:
@@ -10,8 +10,8 @@ jobs:
     name: Docs linting
     runs-on: ubuntu-latest      
     steps:
-      - uses: actions/checkout@v3
-      - name: Lint changelog file
+      - uses: actions/checkout@v4
+      - name: Lint READMEs
         uses: docker://avtodev/markdown-lint:v1
         with:
           args: './README.md ./carbon-intensity-api/README.md ./rate-limiter-rs/README.md'

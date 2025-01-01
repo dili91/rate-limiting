@@ -9,11 +9,15 @@
 //!
 //! ```
 //! use std::net::{IpAddr, Ipv4Addr};
-//! use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
+//! use rate_limiter_rs::{factory::RateLimiterFactory, builders::RedisSettings, RateLimiter,
 //!     RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled
 //! };
 //!
 //! let rate_limiter = RateLimiterFactory::sliding_window()
+//!     .with_redis_settings(RedisSettings{
+//!         host: "127.0.0.1".to_string(),
+//!         port: 7379
+//!     })
 //!     .build()
 //!     .unwrap();
 //! let ip_address = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
@@ -230,9 +234,14 @@ mod test {
         //arrange
         let window_size = 5;
         let window_duration = Duration::from_secs(60);
+        let redis_settings = RedisSettings {
+            host: "127.0.0.1".to_string(),
+            port: 7379,
+        };
         let rate_limiter = RateLimiterFactory::sliding_window()
             .with_window_size(window_size)
             .with_window_duration(window_duration)
+            .with_redis_settings(redis_settings)
             .build()
             .unwrap();
 
