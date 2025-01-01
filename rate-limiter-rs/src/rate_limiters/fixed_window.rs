@@ -10,11 +10,15 @@
 //!
 //! ```
 //! use std::net::{IpAddr, Ipv4Addr};
-//! use rate_limiter_rs::{factory::RateLimiterFactory, RateLimiter,
+//! use rate_limiter_rs::{factory::RateLimiterFactory, builders::RedisSettings, RateLimiter,
 //!     RateLimiterResponse, RequestAllowed, RequestIdentifier, RequestThrottled
 //! };
 //!
 //! let rate_limiter = RateLimiterFactory::fixed_window()
+//!     .with_redis_settings(RedisSettings{
+//!         host: "127.0.0.1".to_string(),
+//!         port: 7379
+//!     })
 //!     .build()
 //!     .unwrap();
 //! let ip_address = IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4));
