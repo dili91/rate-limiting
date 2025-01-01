@@ -6,8 +6,8 @@ defaults:
 
 on:
   push:
-    # paths:
-    #   - 'carbon-intensity-api/**'
+    paths:
+      - 'carbon-intensity-api/**'
 
 jobs:
   build_and_test:

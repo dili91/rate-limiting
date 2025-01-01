@@ -6,8 +6,8 @@ defaults:
 
 on:
   push:
-    # paths:
-    #   - 'rate-limiter-rs/**'
+    paths:
+      - 'rate-limiter-rs/**'
 
 jobs:
   build_and_test:
