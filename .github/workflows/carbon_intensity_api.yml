@@ -46,4 +46,4 @@ jobs:
       - name: Run local k6 test
         uses: grafana/run-k6-action@v1
         with:
-          path: distributed_test.js
+          path: ./carbon-intensity-api/distributed_test.js
