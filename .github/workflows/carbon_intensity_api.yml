@@ -15,7 +15,7 @@ jobs:
       redis:
         image: redis:alpine
         ports:
-          - 6379:6379
+          - 7379:6379
     runs-on: ubuntu-latest      
     steps:
       - uses: actions/checkout@v4
