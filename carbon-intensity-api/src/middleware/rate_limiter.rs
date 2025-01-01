@@ -83,9 +83,9 @@ where
 
             let rate_limiter_response = rate_limiter.check_request(request_identifier);
 
-            return match rate_limiter_response {
+            match rate_limiter_response {
                 Ok(response) => {
-                    return match response {
+                    match response {
                         RateLimiterResponse::RequestAllowed(RequestAllowed {
                             remaining_request_counter,
                         }) => {
@@ -111,18 +111,18 @@ where
                         RateLimiterResponse::RequestThrottled(RequestThrottled { retry_in }) => {
                             log::warn!("request throttled for ip={}", ip_address);
 
-                            return Err(ApiError::RequestThrottled {
+                            Err(ApiError::RequestThrottled {
                                 retry_after_seconds: retry_in.as_secs(),
                             }
-                            .into());
+                            .into())
                         }
-                    };
+                    }
                 }
                 Err(_err) => {
                     log::warn!("unable to check rate limit for request coming from ip={}. Skipping validation", ip_address);
                     Ok(service.call(req).await?)
                 }
-            };
+            }
         }
         .boxed_local()
     }
