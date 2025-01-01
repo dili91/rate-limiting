@@ -110,7 +110,7 @@ impl RateLimiter for FixedWindowRateLimiter {
 
         let response = if executed_request_counter <= self.window_size {
             RateLimiterResponse::RequestAllowed(RequestAllowed {
-                remaining_request_counter: self.window_size - executed_request_counter as u64,
+                remaining_request_counter: self.window_size - executed_request_counter,
             })
         } else {
             RateLimiterResponse::RequestThrottled(RequestThrottled {

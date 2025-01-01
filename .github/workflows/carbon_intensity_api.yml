@@ -19,15 +19,15 @@ jobs:
     runs-on: ubuntu-latest      
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: stable
+          components: rustfmt, clippy
       - name: Build
         run: cargo build
       - name: Format
         run: cargo fmt
       - name: Lint
-        run: cargo fmt --check
+        run: cargo clippy -- -Dwarnings
       - name: Install nextest
         uses: taiki-e/install-action@nextest
       - name: Test
