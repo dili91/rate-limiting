@@ -1,4 +1,8 @@
 use actix_web::{HttpResponse, Responder};
+use opentelemetry::{
+    global,
+    trace::{Span, SpanKind, Status, Tracer},
+};
 
 use super::entities::{CarbonIntensityData, Intensity, IntensityIndex};
 
@@ -13,6 +17,14 @@ pub async fn get_intensity() -> std::io::Result<impl Responder> {
             index: IntensityIndex::Moderate,
         },
     };
+
+    // let tracer = global::tracer("carbon_intesity");
+
+    // let mut span = tracer
+    //     .span_builder(format!("{} {}", "GET", "/carbon/intensity"))
+    //     .with_kind(SpanKind::Server)
+    //     .start(&tracer);
+    // span.set_status(Status::Ok);
 
     Ok(HttpResponse::Ok().json(data))
 }

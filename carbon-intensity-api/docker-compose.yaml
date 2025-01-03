@@ -21,7 +21,7 @@ services:
     environment:
       - APP__RATE_LIMITER__REDIS_SERVER__HOST=redis
 
-  load_balancer:
+  load-balancer:
     image: nginx:1.23.3-alpine-slim
     ports:
       - "8080:8080"
@@ -31,6 +31,23 @@ services:
       - carbon-intensity-api
     networks:
       - backend
+  
+  jaeger:
+    image: jaegertracing/jaeger:2.1.0
+    ports:
+      - "16686:16686"
+  
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.116.1
+    depends_on:
+      - jaeger
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "55679:55679"
+      - "3000:3000"
+    volumes:
+      - "./otel-collector.yaml:/etc/otelcol-contrib/config.yaml"
 
 networks:
   backend:

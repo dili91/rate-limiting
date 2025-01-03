@@ -9,15 +9,15 @@ REDIS_DOCKER_CONTAINER_NAME := "carbon-intensity-api-redis-standalone"
 test:
     cargo nextest run
 
-local-environment-startup:
-    docker run --name {{REDIS_DOCKER_CONTAINER_NAME}} -p {{REDIS_PORT}}:6379 -d redis:7.4.1-bookworm
-
 local-environment-shutdown:
     docker rm -f {{REDIS_DOCKER_CONTAINER_NAME}}
 
+local-environment-startup: local-environment-shutdown
+    docker run --name {{REDIS_DOCKER_CONTAINER_NAME}} -p {{REDIS_PORT}}:6379 -d redis:7.4.1-bookworm
+
 # Meant for basic local testing
-local-run: local-environment-startup && local-environment-shutdown
-    APP__RATE_LIMITER__REDIS_SERVER__PORT={{REDIS_PORT}} cargo run
+local-run: local-environment-startup
+    APP__RATE_LIMITER__REDIS_SERVER__PORT={{REDIS_PORT}} APP__HTTP_SERVER__PORT=9999 cargo run
 
 compose-build: 
     docker compose build
