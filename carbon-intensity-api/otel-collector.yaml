@@ -2,13 +2,9 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: otel-collector:4317
+
 processors:
-  attributes:
-    actions:
-      - key: test.key
-        value: hello!
-        action: insert
   batch:
   memory_limiter:
     check_interval: 1s
@@ -19,22 +15,16 @@ exporters:
     endpoint: jaeger:4317
     tls:
       insecure: true
-  prometheus:
-    endpoint: 0.0.0.0:3000
 
 extensions:
   health_check:
   zpages:
-    endpoint: "0.0.0.0:55679"
+    endpoint: otel-collector:55679
 
 service:
   extensions: [health_check, zpages]
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch, attributes, memory_limiter]
-      exporters: [otlp]
-    metrics:
-      receivers: [otlp]
       processors: [batch, memory_limiter]
-      exporters: [prometheus]
+      exporters: [otlp]

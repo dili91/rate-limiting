@@ -20,6 +20,7 @@ services:
       replicas: 3
     environment:
       - APP__RATE_LIMITER__REDIS_SERVER__HOST=redis
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 
   load-balancer:
     image: nginx:1.23.3-alpine-slim
@@ -42,10 +43,7 @@ services:
     depends_on:
       - jaeger
     ports:
-      - "4317:4317"
-      - "4318:4318"
       - "55679:55679"
-      - "3000:3000"
     volumes:
       - "./otel-collector.yaml:/etc/otelcol-contrib/config.yaml"
 

@@ -1,7 +1,6 @@
 use std::sync::LazyLock;
 
 use carbon_intensity_api::{application::Application, settings::AppSettings};
-use env_logger::Env;
 use opentelemetry::{trace::TracerProvider, KeyValue};
 use opentelemetry_sdk::{runtime::TokioCurrentThread, Resource};
 use opentelemetry_semantic_conventions::resource;
@@ -48,8 +47,6 @@ fn init_telemetry() {
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     init_telemetry();
-
-    env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     let settings = AppSettings::new().expect("unable to load app settings");
 
