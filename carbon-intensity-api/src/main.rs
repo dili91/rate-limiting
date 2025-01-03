@@ -2,8 +2,8 @@ use std::sync::LazyLock;
 
 use carbon_intensity_api::{application::Application, settings::AppSettings};
 use env_logger::Env;
-use opentelemetry_sdk::{runtime::TokioCurrentThread, Resource};
 use opentelemetry::{trace::TracerProvider, KeyValue};
+use opentelemetry_sdk::{runtime::TokioCurrentThread, Resource};
 use opentelemetry_semantic_conventions::resource;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
@@ -30,17 +30,17 @@ fn init_telemetry() {
 
     // Create a `tracing` layer using the otlp tracer
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-    
+
     // Create a `tracing` layer to emit spans as structured logs to stdout
     let formatting_layer = BunyanFormattingLayer::new(APP_NAME.into(), std::io::stdout);
-    
+
     // Combined them all together in a `tracing` subscriber
     let subscriber = Registry::default()
         .with(env_filter)
         .with(telemetry)
         .with(JsonStorageLayer)
         .with(formatting_layer);
-    
+
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to install `tracing` subscriber.")
 }
