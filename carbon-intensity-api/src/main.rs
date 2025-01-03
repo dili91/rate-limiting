@@ -1,8 +1,8 @@
 use std::sync::LazyLock;
 
 use carbon_intensity_api::{application::Application, settings::AppSettings};
-use opentelemetry::{trace::TracerProvider, KeyValue};
-use opentelemetry_sdk::{runtime::TokioCurrentThread, Resource};
+use opentelemetry::{global, trace::TracerProvider, KeyValue};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, runtime::TokioCurrentThread, Resource};
 use opentelemetry_semantic_conventions::resource;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
@@ -12,6 +12,7 @@ static RESOURCE: LazyLock<Resource> =
     LazyLock::new(|| Resource::new(vec![KeyValue::new(resource::SERVICE_NAME, APP_NAME)]));
 
 fn init_telemetry() {
+    global::set_text_map_propagator(TraceContextPropagator::new());
     let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_tonic()
         .build()
