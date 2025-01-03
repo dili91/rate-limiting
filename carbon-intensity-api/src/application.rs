@@ -2,6 +2,7 @@ use std::{rc::Rc, time::Duration};
 
 use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
 use rate_limiter_rs::{builders::RedisSettings, factory::RateLimiterFactory};
+use tracing_actix_web::TracingLogger;
 
 use crate::{
     middleware::rate_limiter::RateLimiterMiddlewareFactory,
@@ -32,6 +33,7 @@ impl Application {
         let server = HttpServer::new(move || {
             App::new()
                 .wrap(Logger::default())
+                .wrap(TracingLogger::default())
                 .route("/health_check", web::get().to(health_check))
                 .service(
                     web::scope("/carbon/intensity")

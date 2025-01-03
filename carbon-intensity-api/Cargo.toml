@@ -12,6 +12,7 @@ name = "carbon-intensity-api"
 
 [dependencies]
 actix-web = "4.9.0"
+tracing-actix-web = "0.7.15"
 futures-util = "0.3.31"
 serde = { version = "1.0.217", features = ["derive"] }
 tokio = { version = "1.42", features = ["full"] }
@@ -20,6 +21,15 @@ derive_more = { version = "1", features = ["display"] }
 env_logger = "0.11.6"
 log = "0.4.22"
 config = "0.15.4"
+opentelemetry = "0.27"
+opentelemetry-semantic-conventions = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio-current-thread"]}
+opentelemetry-otlp = "0.27"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
+tracing-opentelemetry = "0.28.0"
+tracing-bunyan-formatter = "0.3.10"
+
 
 [dev-dependencies]
 rand = "0.8.5"

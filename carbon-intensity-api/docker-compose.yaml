@@ -16,12 +16,14 @@ services:
       - backend
     depends_on:
       - redis
+      - otel-collector
     deploy:
       replicas: 3
     environment:
       - APP__RATE_LIMITER__REDIS_SERVER__HOST=redis
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 
-  load_balancer:
+  load-balancer:
     image: nginx:1.23.3-alpine-slim
     ports:
       - "8080:8080"
@@ -29,6 +31,24 @@ services:
       - "./nginx.conf:/etc/nginx/nginx.conf"
     depends_on:
       - carbon-intensity-api
+    networks:
+      - backend
+  
+  jaeger:
+    image: jaegertracing/jaeger:2.1.0
+    ports:
+      - "16686:16686"
+    networks:
+      - backend
+  
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.116.1
+    depends_on:
+      - jaeger
+    ports:
+      - "55679:55679"
+    volumes:
+      - "./otel-collector.yaml:/etc/otelcol-contrib/config.yaml"
     networks:
       - backend
 
