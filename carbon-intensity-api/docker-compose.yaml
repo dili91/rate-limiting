@@ -16,6 +16,7 @@ services:
       - backend
     depends_on:
       - redis
+      - otel-collector
     deploy:
       replicas: 3
     environment:
@@ -37,6 +38,8 @@ services:
     image: jaegertracing/jaeger:2.1.0
     ports:
       - "16686:16686"
+    networks:
+      - backend
   
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.116.1
@@ -46,6 +49,8 @@ services:
       - "55679:55679"
     volumes:
       - "./otel-collector.yaml:/etc/otelcol-contrib/config.yaml"
+    networks:
+      - backend
 
 networks:
   backend:
