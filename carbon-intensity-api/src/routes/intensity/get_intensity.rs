@@ -1,8 +1,4 @@
 use actix_web::{HttpResponse, Responder};
-use opentelemetry::{
-    global,
-    trace::{Span, SpanKind, Status, Tracer},
-};
 
 use super::entities::{CarbonIntensityData, Intensity, IntensityIndex};
 
