@@ -14,13 +14,5 @@ pub async fn get_intensity() -> std::io::Result<impl Responder> {
         },
     };
 
-    // let tracer = global::tracer("carbon_intesity");
-
-    // let mut span = tracer
-    //     .span_builder(format!("{} {}", "GET", "/carbon/intensity"))
-    //     .with_kind(SpanKind::Server)
-    //     .start(&tracer);
-    // span.set_status(Status::Ok);
-
     Ok(HttpResponse::Ok().json(data))
 }
