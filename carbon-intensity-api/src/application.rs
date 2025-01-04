@@ -1,9 +1,8 @@
 use std::{rc::Rc, time::Duration};
 
-use actix_web::{body::MessageBody, dev::{Server, ServiceRequest, ServiceResponse}, middleware::Logger, web, App, Error, HttpServer};
+use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
 use rate_limiter_rs::{builders::RedisSettings, factory::RateLimiterFactory};
-use tracing::Span;
-use tracing_actix_web::{DefaultRootSpanBuilder, RootSpanBuilder, TracingLogger};
+use tracing_actix_web::TracingLogger;
 
 use crate::{
     middleware::rate_limiter::RateLimiterMiddlewareFactory,

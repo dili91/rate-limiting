@@ -1,6 +1,10 @@
 use std::sync::LazyLock;
 
-use actix_web::{body::MessageBody, dev::{ServiceRequest, ServiceResponse}, Error};
+use actix_web::{
+    body::MessageBody,
+    dev::{ServiceRequest, ServiceResponse},
+    Error,
+};
 use carbon_intensity_api::{application::Application, settings::AppSettings};
 use opentelemetry::{global, trace::TracerProvider, KeyValue};
 use opentelemetry_sdk::{
