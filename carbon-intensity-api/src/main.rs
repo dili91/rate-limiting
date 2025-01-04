@@ -1,18 +1,11 @@
 use std::sync::LazyLock;
 
-use actix_web::{
-    body::MessageBody,
-    dev::{ServiceRequest, ServiceResponse},
-    Error,
-};
 use carbon_intensity_api::{application::Application, settings::AppSettings};
 use opentelemetry::{global, trace::TracerProvider, KeyValue};
 use opentelemetry_sdk::{
     propagation::TraceContextPropagator, runtime::TokioCurrentThread, Resource,
 };
 use opentelemetry_semantic_conventions::resource;
-use tracing::Span;
-use tracing_actix_web::{DefaultRootSpanBuilder, RootSpanBuilder};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
