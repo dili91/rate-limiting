@@ -1,8 +1,10 @@
-use actix_web::{HttpResponse, Responder};
+use actix_web::{HttpRequest, HttpResponse, Responder};
 
 use super::entities::{CarbonIntensityData, Intensity, IntensityIndex};
 
-pub async fn get_intensity() -> std::io::Result<impl Responder> {
+pub async fn get_intensity(req: HttpRequest) -> std::io::Result<impl Responder> {
+    println!("{:?}", req.headers());
+
     // return just mock data for now
     let data = CarbonIntensityData {
         from: "2018-01-20T12:00Z".to_string(),

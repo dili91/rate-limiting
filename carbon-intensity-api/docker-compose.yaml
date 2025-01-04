@@ -24,7 +24,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 
   load-balancer:
-    image: nginx:1.23.3-alpine-slim
+    image: nginx:1.27.3-bookworm-otel
     ports:
       - "8080:8080"
     volumes: 
