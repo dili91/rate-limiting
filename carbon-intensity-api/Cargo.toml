@@ -1,6 +1,6 @@
 [package]
 name = "carbon-intensity-api"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 [lib]
@@ -12,7 +12,7 @@ name = "carbon-intensity-api"
 
 [dependencies]
 actix-web = "4.9.0"
-tracing-actix-web = "0.7.15"
+tracing-actix-web = {version = "0.7.15", features = ["opentelemetry_0_27", "emit_event_on_error"]}
 futures-util = "0.3.31"
 serde = { version = "1.0.217", features = ["derive"] }
 tokio = { version = "1.42", features = ["full"] }
